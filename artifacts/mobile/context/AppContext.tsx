@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 
+import { insertActivity } from "@/lib/supabase";
+
 export type ActivityType = "run" | "walk" | "pilates" | "yoga" | "strength";
 
 export interface Activity {
@@ -189,6 +191,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         saveActivities(user.id, next).catch(() => {});
         return next;
       });
+      insertActivity({
+        id: newActivity.id,
+        user_id: user.id,
+        date: newActivity.date,
+        type: newActivity.type,
+        duration_minutes: newActivity.durationMinutes,
+        distance_km: newActivity.distanceKm ?? null,
+        pace: newActivity.pace ?? null,
+        notes: newActivity.notes ?? null,
+      }).catch(() => {});
     },
     [user]
   );
