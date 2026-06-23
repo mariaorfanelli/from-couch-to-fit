@@ -1,0 +1,37 @@
+You are an expert full-stack mobile app developer and UI/UX designer. I want to build a mobile app called "from couch to fit" using React Native (with Expo) for the frontend, and a Node.js Express backend with PostgreSQL for a robust database (or Supabase if it's cleaner for auth and DB). 
+
+Please scaffold the initial project and build the foundational features outlined below.
+
+APP OVERVIEW:
+Name: from couch to fit
+Goal: A fitness tracking app similar to Strava, but focused on users training for specific goals (like a 6km run) while also accommodating general wellness activities.
+
+DESIGN & AESTHETICS:
+- Theme: Minimalist, clean, and elegant.
+- Colors: Soft pastel pinks and deep, muted purples. 
+- Styling: Use delicate lines (thin borders, light dividers), plenty of whitespace, and rounded corners. It should not look aggressive or purely "athletic" like standard fitness apps; it should feel welcoming and calm.
+
+CORE FEATURES TO BUILD:
+1. Authentication: 
+   - A clean login and account creation screen.
+2. Database Schema (PostgreSQL):
+   - Users table.
+   - Activities table (date, activity_type, duration_minutes, distance_km, pace, notes).
+   - Goals table (target_event, target_distance_km, target_date).
+3. Dashboard / Home Screen:
+   - A minimalist summary of progress toward the current goal.
+   - Indicators: Total km ran/walked this week/month, and a simple chart or text showing pace evolution.
+4. Activity Logger:
+   - A form to log new activities.
+   - Must support different activity types via a dropdown or selector: Run, Walk, Pilates, Yoga, Strength Training.
+   - Conditional inputs (e.g., Distance and Pace only show up if the activity is a Run or Walk).
+5. Workout Suggestion Engine (UI placeholder):
+   - A section on the home screen titled "Next Recommended Workout" based on the user's active goal (e.g., "You have a 6km run in September. Today's suggestion: 3km easy pace run").
+
+INSTRUCTIONS FOR THE AI:
+1. Start by initializing the Expo project and backend structure.
+2. Set up the navigation (React Navigation) with bottom tabs: Home, Log Activity, Goals, Profile.
+3. Build the database connection and define the schemas.
+4. Implement the UI screens with dummy data first so I can review the minimalist pink/purple aesthetic before we connect the live database.
+
+Please confirm you understand these requirements, and execute the first step of setting up the Expo app, database, and bottom tab navigation.
