@@ -17,8 +17,8 @@ function NativeTabLayout() {
         <Label>Home</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="log">
-        <Icon sf={{ default: "plus.circle", selected: "plus.circle.fill" }} />
-        <Label>Log</Label>
+        <Icon sf={{ default: "record.circle", selected: "record.circle.fill" }} />
+        <Label>Record</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="goals">
         <Icon sf={{ default: "flag", selected: "flag.fill" }} />
@@ -62,10 +62,7 @@ function ClassicTabLayout() {
             />
           ) : isWeb ? (
             <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: colors.background },
-              ]}
+              style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}
             />
           ) : null,
       }}
@@ -85,12 +82,12 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="log"
         options={{
-          title: "Log",
+          title: "Record",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="plus.circle" tintColor={color} size={24} />
+              <SymbolView name="record.circle" tintColor={color} size={24} />
             ) : (
-              <Feather name="plus-circle" size={22} color={color} />
+              <Feather name="disc" size={22} color={color} />
             ),
         }}
       />
