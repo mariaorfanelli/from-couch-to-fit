@@ -14,6 +14,7 @@ import {
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { EmptyGoalsIllustration } from "@/components/Illustrations";
 import { Goal, useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -25,62 +26,68 @@ function daysUntil(dateStr: string): number {
 }
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return new Date(dateStr).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
 function GoalCard({ goal, isActive, onDelete }: { goal: Goal; isActive: boolean; onDelete: () => void }) {
   const colors = useColors();
   const days = daysUntil(goal.targetDate);
   const isPast = days < 0;
+  const shadow = {
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    elevation: 3,
+  };
 
   return (
     <View
       style={[
         styles.goalCard,
         {
-          backgroundColor: isActive && !isPast ? colors.card : colors.muted,
+          backgroundColor: colors.card,
           borderColor: isActive && !isPast ? colors.primary : colors.border,
           borderWidth: isActive && !isPast ? 1.5 : 1,
+          ...shadow,
         },
       ]}
     >
       {isActive && !isPast && (
-        <View style={[styles.activeBadge, { backgroundColor: colors.primary }]}>
-          <Text style={[styles.activeBadgeText, { fontFamily: "Inter_600SemiBold" }]}>Active</Text>
+        <View style={[styles.activePill, { backgroundColor: colors.secondary }]}>
+          <View style={[styles.activeDot, { backgroundColor: colors.primary }]} />
+          <Text style={[styles.activePillText, { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
+            Active
+          </Text>
         </View>
       )}
-      <View style={styles.goalRow}>
+
+      <View style={styles.goalBody}>
         <View style={styles.goalLeft}>
-          <Text style={[styles.goalEvent, { color: colors.foreground, fontFamily: "Inter_600SemiBold" }]}>
-            {goal.targetEvent}
-          </Text>
           <Text style={[styles.goalDistance, { color: colors.primary, fontFamily: "Inter_700Bold" }]}>
             {goal.targetDistanceKm} km
+          </Text>
+          <Text style={[styles.goalEvent, { color: colors.foreground, fontFamily: "Inter_600SemiBold" }]}>
+            {goal.targetEvent}
           </Text>
           <Text style={[styles.goalDate, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
             {formatDate(goal.targetDate)}
           </Text>
         </View>
+
         <View style={styles.goalRight}>
-          {isPast ? (
-            <View style={[styles.daysBadge, { backgroundColor: colors.muted }]}>
-              <Text style={[styles.daysNum, { color: colors.mutedForeground, fontFamily: "Inter_700Bold" }]}>
-                Done
-              </Text>
-            </View>
-          ) : (
-            <View style={[styles.daysBadge, { backgroundColor: isActive ? colors.secondary : colors.muted }]}>
-              <Text style={[styles.daysNum, { color: isActive ? colors.accent : colors.mutedForeground, fontFamily: "Inter_700Bold" }]}>
-                {days}
-              </Text>
-              <Text style={[styles.daysLabel, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
+          <View style={[styles.countdownBox, { backgroundColor: isPast ? colors.muted : colors.secondary }]}>
+            <Text style={[styles.countdownNum, { color: isPast ? colors.mutedForeground : colors.accent, fontFamily: "Inter_700Bold" }]}>
+              {isPast ? "Done" : String(days)}
+            </Text>
+            {!isPast && (
+              <Text style={[styles.countdownLabel, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
                 days left
               </Text>
-            </View>
-          )}
+            )}
+          </View>
           <Pressable
-            style={styles.deleteButton}
+            style={styles.deleteBtn}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               Alert.alert("Delete Goal", "Remove this goal?", [
@@ -89,7 +96,7 @@ function GoalCard({ goal, isActive, onDelete }: { goal: Goal; isActive: boolean;
               ]);
             }}
           >
-            <Feather name="trash-2" size={16} color={colors.mutedForeground} />
+            <Feather name="trash-2" size={15} color={colors.mutedForeground} />
           </Pressable>
         </View>
       </View>
@@ -103,72 +110,56 @@ function AddGoalForm({ onClose }: { onClose: () => void }) {
   const [event, setEvent] = useState("");
   const [distanceKm, setDistanceKm] = useState("");
   const [targetDate, setTargetDate] = useState("");
+  const shadow = {
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 3,
+  };
 
   function handleAdd() {
-    if (!event.trim()) {
-      Alert.alert("Missing info", "Please enter a goal name.");
-      return;
-    }
+    if (!event.trim()) { Alert.alert("Missing info", "Please enter a goal name."); return; }
     if (!distanceKm || isNaN(Number(distanceKm)) || Number(distanceKm) <= 0) {
-      Alert.alert("Missing info", "Please enter a valid distance.");
-      return;
+      Alert.alert("Missing info", "Please enter a valid distance."); return;
     }
     if (!targetDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      Alert.alert("Missing info", "Please enter a date in YYYY-MM-DD format.");
-      return;
+      Alert.alert("Missing info", "Please enter a date in YYYY-MM-DD format."); return;
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    addGoal({
-      targetEvent: event.trim(),
-      targetDistanceKm: Number(distanceKm),
-      targetDate,
-    });
+    addGoal({ targetEvent: event.trim(), targetDistanceKm: Number(distanceKm), targetDate });
     onClose();
   }
 
   return (
     <Animated.View
       entering={FadeInDown.duration(300)}
-      style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.border, ...shadow }]}
     >
       <Text style={[styles.formTitle, { color: colors.foreground, fontFamily: "Inter_600SemiBold" }]}>
         New Goal
       </Text>
-      <View style={styles.formGroup}>
-        <Text style={[styles.fieldLabel, { color: colors.mutedForeground, fontFamily: "Inter_500Medium" }]}>
-          Event / Goal name
+
+      <View style={styles.formField}>
+        <Text style={[styles.formLabel, { color: colors.mutedForeground, fontFamily: "Inter_500Medium" }]}>
+          Goal name
         </Text>
         <TextInput
-          style={[
-            styles.input,
-            {
-              backgroundColor: colors.background,
-              borderColor: colors.border,
-              color: colors.foreground,
-              fontFamily: "Inter_400Regular",
-            },
-          ]}
+          style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground, fontFamily: "Inter_400Regular" }]}
           value={event}
           onChangeText={setEvent}
           placeholder="e.g. 10km fun run"
           placeholderTextColor={colors.mutedForeground}
         />
       </View>
+
       <View style={styles.formRow}>
-        <View style={[styles.formGroup, { flex: 1 }]}>
-          <Text style={[styles.fieldLabel, { color: colors.mutedForeground, fontFamily: "Inter_500Medium" }]}>
+        <View style={[styles.formField, { flex: 1 }]}>
+          <Text style={[styles.formLabel, { color: colors.mutedForeground, fontFamily: "Inter_500Medium" }]}>
             Distance (km)
           </Text>
           <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.background,
-                borderColor: colors.border,
-                color: colors.foreground,
-                fontFamily: "Inter_400Regular",
-              },
-            ]}
+            style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground, fontFamily: "Inter_400Regular" }]}
             value={distanceKm}
             onChangeText={setDistanceKm}
             placeholder="6"
@@ -176,20 +167,12 @@ function AddGoalForm({ onClose }: { onClose: () => void }) {
             keyboardType="decimal-pad"
           />
         </View>
-        <View style={[styles.formGroup, { flex: 1.4 }]}>
-          <Text style={[styles.fieldLabel, { color: colors.mutedForeground, fontFamily: "Inter_500Medium" }]}>
+        <View style={[styles.formField, { flex: 1.5 }]}>
+          <Text style={[styles.formLabel, { color: colors.mutedForeground, fontFamily: "Inter_500Medium" }]}>
             Target date
           </Text>
           <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.background,
-                borderColor: colors.border,
-                color: colors.foreground,
-                fontFamily: "Inter_400Regular",
-              },
-            ]}
+            style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground, fontFamily: "Inter_400Regular" }]}
             value={targetDate}
             onChangeText={setTargetDate}
             placeholder="YYYY-MM-DD"
@@ -197,25 +180,18 @@ function AddGoalForm({ onClose }: { onClose: () => void }) {
           />
         </View>
       </View>
-      <View style={styles.formButtons}>
+
+      <View style={styles.formActions}>
         <Pressable
-          style={[styles.cancelButton, { borderColor: colors.border }]}
-          onPress={() => {
-            Haptics.selectionAsync();
-            onClose();
-          }}
+          style={[styles.cancelBtn, { borderColor: colors.border }]}
+          onPress={() => { Haptics.selectionAsync(); onClose(); }}
         >
-          <Text style={[styles.cancelButtonText, { color: colors.mutedForeground, fontFamily: "Inter_500Medium" }]}>
+          <Text style={[styles.cancelBtnText, { color: colors.mutedForeground, fontFamily: "Inter_500Medium" }]}>
             Cancel
           </Text>
         </Pressable>
-        <Pressable
-          style={[styles.addButton, { backgroundColor: colors.primary }]}
-          onPress={handleAdd}
-        >
-          <Text style={[styles.addButtonText, { fontFamily: "Inter_600SemiBold" }]}>
-            Add Goal
-          </Text>
+        <Pressable style={[styles.addBtn, { backgroundColor: colors.primary }]} onPress={handleAdd}>
+          <Text style={[styles.addBtnText, { fontFamily: "Inter_600SemiBold" }]}>Add Goal</Text>
         </Pressable>
       </View>
     </Animated.View>
@@ -243,10 +219,7 @@ export default function GoalsScreen() {
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-      <Animated.View
-        entering={FadeInDown.delay(0).duration(400)}
-        style={styles.headerRow}
-      >
+      <Animated.View entering={FadeInDown.delay(0).duration(400)} style={styles.headerRow}>
         <View>
           <Text style={[styles.screenTitle, { color: colors.foreground, fontFamily: "Inter_700Bold" }]}>
             Goals
@@ -257,41 +230,41 @@ export default function GoalsScreen() {
         </View>
         {!showForm && (
           <Pressable
-            style={[styles.addGoalButton, { backgroundColor: colors.primary }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowForm(true);
-            }}
+            style={[styles.addGoalBtn, { backgroundColor: colors.primary }]}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowForm(true); }}
           >
             <Feather name="plus" size={20} color="#FFFFFF" />
           </Pressable>
         )}
       </Animated.View>
 
-      {showForm && (
-        <AddGoalForm onClose={() => setShowForm(false)} />
-      )}
+      {showForm && <AddGoalForm onClose={() => setShowForm(false)} />}
 
       {goals.length === 0 && !showForm && (
         <Animated.View
-          entering={FadeInDown.delay(120).duration(400)}
-          style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+          entering={FadeInDown.delay(100).duration(400)}
+          style={[styles.emptyCard, {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            shadowColor: colors.primary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.06,
+            shadowRadius: 14,
+            elevation: 2,
+          }]}
         >
-          <Feather name="flag" size={36} color={colors.border} />
+          <EmptyGoalsIllustration size={100} />
           <Text style={[styles.emptyTitle, { color: colors.foreground, fontFamily: "Inter_600SemiBold" }]}>
             Set your first goal
           </Text>
           <Text style={[styles.emptyText, { color: colors.mutedForeground, fontFamily: "Inter_400Regular" }]}>
-            Goals give your training purpose. Set a target event or distance to work toward.
+            Goals give your training purpose and unlock personalized daily suggestions.
           </Text>
           <Pressable
-            style={[styles.emptyButton, { backgroundColor: colors.primary }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowForm(true);
-            }}
+            style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowForm(true); }}
           >
-            <Text style={[styles.emptyButtonText, { fontFamily: "Inter_600SemiBold" }]}>
+            <Text style={[styles.emptyBtnText, { fontFamily: "Inter_600SemiBold" }]}>
               Create Goal
             </Text>
           </Pressable>
@@ -299,12 +272,8 @@ export default function GoalsScreen() {
       )}
 
       {goals.map((goal, i) => (
-        <Animated.View key={goal.id} entering={FadeInRight.delay(120 + i * 60).duration(300)}>
-          <GoalCard
-            goal={goal}
-            isActive={i === 0}
-            onDelete={() => deleteGoal(goal.id)}
-          />
+        <Animated.View key={goal.id} entering={FadeInRight.delay(100 + i * 60).duration(300)}>
+          <GoalCard goal={goal} isActive={i === 0} onDelete={() => deleteGoal(goal.id)} />
         </Animated.View>
       ))}
     </ScrollView>
@@ -320,9 +289,9 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 24,
   },
-  screenTitle: { fontSize: 28, marginBottom: 4 },
-  screenSub: { fontSize: 15 },
-  addGoalButton: {
+  screenTitle: { fontSize: 28, marginBottom: 2 },
+  screenSub: { fontSize: 14 },
+  addGoalBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -330,84 +299,49 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 4,
   },
-  goalCard: {
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
-    overflow: "hidden",
-  },
-  activeBadge: {
+  goalCard: { borderRadius: 20, padding: 18, marginBottom: 14 },
+  activePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     alignSelf: "flex-start",
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 20,
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  activeBadgeText: { fontSize: 11, color: "#FFFFFF" },
-  goalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  activeDot: { width: 6, height: 6, borderRadius: 3 },
+  activePillText: { fontSize: 11 },
+  goalBody: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   goalLeft: { flex: 1 },
-  goalEvent: { fontSize: 17, marginBottom: 4 },
-  goalDistance: { fontSize: 28, marginBottom: 4 },
+  goalDistance: { fontSize: 28, marginBottom: 2 },
+  goalEvent: { fontSize: 15, marginBottom: 4 },
   goalDate: { fontSize: 13 },
   goalRight: { alignItems: "flex-end", gap: 10 },
-  daysBadge: {
+  countdownBox: {
     borderRadius: 14,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: "center",
     minWidth: 70,
   },
-  daysNum: { fontSize: 20 },
-  daysLabel: { fontSize: 11 },
-  deleteButton: { padding: 4 },
-  emptyCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 32,
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 24,
-  },
+  countdownNum: { fontSize: 20 },
+  countdownLabel: { fontSize: 11 },
+  deleteBtn: { padding: 6 },
+  emptyCard: { borderRadius: 20, borderWidth: 1, padding: 32, alignItems: "center", gap: 10, marginBottom: 24 },
   emptyTitle: { fontSize: 17, marginTop: 4 },
   emptyText: { fontSize: 14, textAlign: "center", lineHeight: 20 },
-  emptyButton: {
-    marginTop: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
-  emptyButtonText: { fontSize: 14, color: "#FFFFFF" },
-  formCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 18,
-    marginBottom: 20,
-  },
+  emptyBtn: { marginTop: 6, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24 },
+  emptyBtnText: { fontSize: 14, color: "#FFFFFF" },
+  formCard: { borderRadius: 20, borderWidth: 1, padding: 18, marginBottom: 20 },
   formTitle: { fontSize: 17, marginBottom: 16 },
-  formGroup: { marginBottom: 12 },
+  formField: { marginBottom: 12 },
+  formLabel: { fontSize: 12, marginBottom: 6, letterSpacing: 0.3 },
+  formInput: { borderWidth: 1.5, borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15 },
   formRow: { flexDirection: "row", gap: 10 },
-  fieldLabel: { fontSize: 12, marginBottom: 6, letterSpacing: 0.4 },
-  input: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-  },
-  formButtons: { flexDirection: "row", gap: 10, marginTop: 4 },
-  cancelButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 13,
-    alignItems: "center",
-  },
-  cancelButtonText: { fontSize: 14 },
-  addButton: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 13,
-    alignItems: "center",
-  },
-  addButtonText: { fontSize: 14, color: "#FFFFFF" },
+  formActions: { flexDirection: "row", gap: 10, marginTop: 4 },
+  cancelBtn: { flex: 1, borderWidth: 1, borderRadius: 13, paddingVertical: 13, alignItems: "center" },
+  cancelBtnText: { fontSize: 14 },
+  addBtn: { flex: 1, borderRadius: 13, paddingVertical: 13, alignItems: "center" },
+  addBtnText: { fontSize: 14, color: "#FFFFFF" },
 });

@@ -6,7 +6,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -14,17 +14,58 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AppProvider } from "@/context/AppContext";
+import { AppProvider, useApp } from "@/context/AppContext";
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+function AuthGate() {
+  const { isAuthenticated, isLoading, hasSeenOnboarding } = useApp();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const seg0 = segments[0] as string | undefined;
+    const inOnboarding = seg0 === "onboarding";
+    const inAuth = seg0 === "auth";
+    const inSummary = seg0 === "activity-summary";
+
+    if (inSummary) return;
+
+    if (!hasSeenOnboarding) {
+      if (!inOnboarding) router.replace("/onboarding");
+      return;
+    }
+
+    if (!isAuthenticated) {
+      if (!inAuth) router.replace("/auth");
+      return;
+    }
+
+    if (isAuthenticated && (inAuth || inOnboarding)) {
+      router.replace("/(tabs)/");
+    }
+  }, [isAuthenticated, isLoading, hasSeenOnboarding, segments]);
+
+  if (isLoading) return null;
+
+  return null;
+}
+
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back" }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
+    <>
+      <AuthGate />
+      <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="auth" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="activity-summary" />
+      </Stack>
+    </>
   );
 }
 
@@ -48,7 +89,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView>
+          <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
               <AppProvider>
                 <RootLayoutNav />
