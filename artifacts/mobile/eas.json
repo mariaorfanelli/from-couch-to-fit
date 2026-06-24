@@ -1,5 +1,4 @@
 {
-  "_comment": "EXPO_PUBLIC_* vars below are baked into the JS bundle and ship inside the app, so they are intentionally non-secret. Row-Level Security on Supabase is what protects user data; rotate keys via the Supabase dashboard if needed.",
   "cli": {
     "version": ">= 12.0.0",
     "appVersionSource": "local"
