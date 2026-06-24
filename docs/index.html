@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>From Couch to Fit — Movement, gently.</title>
+  <meta name="description" content="Track your walks, runs and Pilates flows at your own soft pace. No leaderboards, no guilt. Just you, moving kindly." />
+  <meta property="og:title" content="From Couch to Fit" />
+  <meta property="og:description" content="Movement tracking, without the pressure." />
+  <meta property="og:type" content="website" />
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg width='180' height='180' viewBox='0 0 180 180' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='180' height='180' rx='40' fill='%23D98EA0'/%3E%3Cpath d='M62 132 q-2 -22 14 -34 q22 -16 30 14 q2 22 -14 34 q-22 16 -30 -14z M104 70 q-2 -18 12 -28 q18 -12 24 12 q2 18 -12 28 q-18 12 -24 -12z' fill='%23ffffff'/%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400&display=swap" rel="stylesheet" />
+  <script defer src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: #FBF9F9;
+      color: #322E38;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+      font-variant-ligatures: none;
+    }
+    ::selection { background: #F4D9DF; color: #322E38; }
+    a { text-decoration: none; color: inherit; }
+    [data-lucide] { stroke-width: 1.5; }
+
+    /* ── NAV ─────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(251, 249, 249, 0.82);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid #EFE8EA;
+    }
+    .nav-row {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; }
+    .brand-mark {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(145deg, #E9AEBB, #D0859A);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(208, 133, 154, 0.32);
+    }
+    .brand-mark [data-lucide] { stroke-width: 2; }
+    .brand-name { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 34px; }
+    .nav-links a { font-size: 15px; font-weight: 500; color: #6E6873; transition: color .2s; }
+    .nav-links a:hover { color: #322E38; }
+    .nav-cta {
+      font-size: 14px !important; font-weight: 600 !important; color: #fff !important;
+      background: linear-gradient(160deg, #D98EA0, #B85F74);
+      padding: 11px 22px; border-radius: 999px;
+      box-shadow: 0 6px 16px rgba(184, 95, 116, 0.3);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(184, 95, 116, 0.4); color: #fff !important; }
+
+    /* ── HERO ────────────────────────────────────────── */
+    .hero { position: relative; overflow: hidden; }
+    .hero-orb {
+      position: absolute; top: -160px; right: -140px;
+      width: 520px; height: 520px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #FCEBEF, #FBF4F5 72%);
+      z-index: 0;
+    }
+    .hero-grid {
+      max-width: 1180px; margin: 0 auto;
+      padding: 84px 32px 90px;
+      display: grid; grid-template-columns: 1.05fr 0.95fr;
+      gap: 48px; align-items: center;
+      position: relative; z-index: 1;
+    }
+    .hero-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #FFFFFF; border: 1px solid #EFE0E5;
+      border-radius: 999px; padding: 7px 15px;
+      margin-bottom: 28px;
+      box-shadow: 0 2px 8px rgba(50, 40, 60, 0.04);
+    }
+    .hero-pill-dot { width: 8px; height: 8px; border-radius: 50%; background: #A9B7A4; }
+    .hero-pill-text { font-size: 13px; font-weight: 600; color: #6E6873; }
+    h1.hero-title {
+      font-family: 'Fraunces', serif; font-weight: 300;
+      font-size: 62px; line-height: 1.04; letter-spacing: -0.02em;
+      margin-bottom: 24px;
+    }
+    h1.hero-title em { font-style: normal; color: #C16E82; }
+    .hero-lead {
+      font-size: 19px; line-height: 1.6; color: #6E6873;
+      max-width: 460px; margin-bottom: 40px;
+    }
+    .download-btn {
+      display: inline-flex; align-items: center; gap: 11px;
+      background: linear-gradient(160deg, #D98EA0, #B85F74);
+      color: #fff !important;
+      border-radius: 16px; padding: 17px 32px;
+      box-shadow: 0 12px 28px rgba(184, 95, 116, 0.34);
+      font-size: 17px; font-weight: 600;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 36px rgba(184, 95, 116, 0.45);
+    }
+    .download-note {
+      margin-top: 16px; font-size: 14px; color: #A39EAA;
+      display: flex; align-items: center; gap: 7px;
+    }
+
+    /* phone mocks shared */
+    .phone {
+      width: 316px; height: 648px;
+      background: #FBF9F9; border-radius: 42px;
+      border: 8px solid #FFFFFF;
+      box-shadow: 0 30px 70px rgba(50, 40, 60, 0.18);
+      overflow: hidden; display: flex; flex-direction: column;
+    }
+    .phone-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 22px 4px; }
+    .phone-row-icons { display: flex; gap: 5px; }
+    .phone-body { flex: 1; padding: 8px 18px 0; overflow: hidden; }
+    .phone-greet { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+    .phone-greet-date { font-size: 12px; color: #A39EAA; font-weight: 500; }
+    .phone-greet-name { font-family: 'Fraunces', serif; font-size: 23px; line-height: 1.1; margin-top: 2px; }
+    .phone-avatar { width: 38px; height: 38px; border-radius: 50%; background: #F2D3DB; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #B85F74; }
+    .phone-stats { display: flex; gap: 10px; margin-bottom: 18px; }
+    .phone-stat-card { flex: 1; background: #fff; border: 1px solid #EDE8EA; border-radius: 16px; padding: 14px; }
+    .phone-stat-num { font-size: 26px; font-weight: 300; font-variant-numeric: tabular-nums; margin-top: 8px; line-height: 1; }
+    .phone-stat-label { font-size: 11px; color: #8A8290; margin-top: 4px; }
+    .phone-exp-card {
+      background: linear-gradient(160deg, #E9AEBB, #D0859A);
+      border-radius: 18px; padding: 18px; color: #fff;
+      box-shadow: 0 10px 22px rgba(208, 133, 154, 0.3); margin-bottom: 18px;
+    }
+    .phone-exp-cap { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+    .phone-exp-cap-text { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.9); }
+    .phone-exp-title { font-size: 17px; font-weight: 600; }
+    .phone-exp-bar { height: 7px; border-radius: 999px; background: rgba(255, 255, 255, 0.28); margin-top: 14px; position: relative; overflow: hidden; }
+    .phone-exp-fill { position: absolute; top: 0; bottom: 0; left: 0; right: 40%; background: #fff; border-radius: 999px; }
+    .phone-cls-card { background: #fff; border: 1px solid #EDE8EA; border-radius: 16px; padding: 14px; display: flex; align-items: center; gap: 12px; }
+    .phone-cls-icon { width: 44px; height: 44px; border-radius: 13px; background: #F1ECF3; display: flex; align-items: center; justify-content: center; flex: none; }
+    .phone-cls-title { font-size: 14px; font-weight: 600; }
+    .phone-cls-sub { font-size: 12px; color: #8A8290; }
+    .phone-nav { padding: 8px 16px 18px; }
+    .phone-nav-bar { background: #fff; border: 1px solid #EDE8EA; border-radius: 20px; box-shadow: 0 6px 18px rgba(50, 40, 60, 0.08); padding: 9px 10px; display: flex; justify-content: space-between; }
+    .phone-nav-tab { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 8px; border-radius: 11px; }
+    .phone-nav-tab.on { background: #FCF4F6; }
+
+    /* ── FEATURES ────────────────────────────────────── */
+    section.features { max-width: 1180px; margin: 0 auto; padding: 90px 32px; }
+    .section-head { text-align: center; margin-bottom: 56px; }
+    .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #C58A98; margin-bottom: 14px; }
+    h2.section-title {
+      font-family: 'Fraunces', serif; font-weight: 300;
+      font-size: 42px; letter-spacing: -0.015em;
+    }
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .feature-card { background: #fff; border: 1px solid #EDE8EA; border-radius: 24px; padding: 34px; box-shadow: 0 4px 16px rgba(50, 40, 60, 0.04); transition: transform .25s ease, box-shadow .25s ease; }
+    .feature-card:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(50, 40, 60, 0.08); }
+    .feature-icon { width: 52px; height: 52px; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin-bottom: 22px; }
+    .feature-icon.blush { background: #F9E9ED; color: #C16E82; }
+    .feature-icon.plum { background: #F1ECF3; color: #9B8AA6; }
+    .feature-icon.sage { background: #EDF1EB; color: #8AA083; }
+    .feature-card h3 { font-size: 20px; font-weight: 600; margin-bottom: 10px; }
+    .feature-card p { font-size: 15px; line-height: 1.6; color: #6E6873; }
+
+    /* ── SCREENS SHOWCASE ────────────────────────────── */
+    section.screens { background: linear-gradient(180deg, #FCEEF1, #FBF9F9); border-top: 1px solid #F2E6EA; border-bottom: 1px solid #F2E6EA; }
+    .screens-inner { max-width: 1180px; margin: 0 auto; padding: 88px 32px; }
+    .screens-row { display: flex; justify-content: center; gap: 36px; align-items: flex-end; flex-wrap: wrap; }
+    .phone-mini { width: 268px; height: 548px; background: #FBF9F9; border-radius: 38px; border: 7px solid #fff; box-shadow: 0 22px 50px rgba(50, 40, 60, 0.14); overflow: hidden; display: flex; flex-direction: column; }
+    .phone-mini.raised { height: 584px; box-shadow: 0 26px 56px rgba(50, 40, 60, 0.18); margin-bottom: 24px; }
+    .mini-map { height: 150px; flex: none; position: relative; background: repeating-linear-gradient(45deg, #F1ECEF, #F1ECEF 11px, #ECE5EA 11px, #ECE5EA 22px); }
+    .mini-map svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .mini-map .dot { position: absolute; border-radius: 50%; border: 2px solid #fff; }
+    .mini-map .dot-start { left: 38px; top: 116px; width: 13px; height: 13px; background: #9B8AA6; }
+    .mini-map .dot-end { left: 226px; top: 16px; width: 15px; height: 15px; background: #D98EA0; }
+    .mini-track-body { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 22px; }
+    .mini-track-cap { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #A39EAA; }
+    .mini-track-time { font-size: 52px; font-weight: 300; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1; margin: 4px 0 24px; }
+    .mini-track-stats { display: flex; gap: 26px; border-top: 1px solid #EDE8EA; padding-top: 20px; width: 100%; justify-content: center; }
+    .mini-track-stats > div { text-align: center; }
+    .mini-track-stat-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #A39EAA; }
+    .mini-track-stat-num { font-size: 24px; font-weight: 300; font-variant-numeric: tabular-nums; }
+    .mini-track-divider { width: 1px; background: #EDE8EA; }
+    .mini-track-controls { padding: 0 0 28px; display: flex; justify-content: center; gap: 18px; }
+    .mini-ctrl-side { width: 46px; height: 46px; border-radius: 50%; background: #fff; border: 1px solid #EAD3DA; display: flex; align-items: center; justify-content: center; }
+    .mini-ctrl-main { width: 62px; height: 62px; border-radius: 50%; background: linear-gradient(160deg, #D98EA0, #B85F74); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px rgba(184, 95, 116, 0.4); }
+
+    .mini-celeb { height: 160px; border-radius: 22px; background: linear-gradient(165deg, #FCEEF1, #F6E3E8); display: flex; align-items: center; justify-content: center; margin-bottom: 18px; flex: none; position: relative; }
+    .mini-celeb .medal { width: 70px; height: 70px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px rgba(208, 133, 154, 0.26); color: #C16E82; }
+    .mini-celeb .spark-a { position: absolute; top: 18px; left: 26px; color: #E0A0B0; }
+    .mini-celeb .spark-b { position: absolute; bottom: 24px; right: 30px; color: #E9AEBB; }
+    .mini-celeb-title { font-family: 'Fraunces', serif; font-size: 21px; text-align: center; line-height: 1.15; margin-bottom: 6px; }
+    .mini-celeb-sub { text-align: center; font-size: 12px; color: #8A8290; line-height: 1.45; margin-bottom: 18px; }
+    .mini-stats-card { background: #fff; border: 1px solid #EDE8EA; border-radius: 18px; padding: 4px 16px; }
+    .mini-stats-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; }
+    .mini-stats-row + .mini-stats-row { border-top: 1px solid #F0EAEC; }
+    .mini-stats-left { display: flex; align-items: center; gap: 9px; color: #6E6873; font-size: 13px; }
+    .mini-stats-val { font-size: 14px; font-weight: 600; }
+    .mini-stats-val.tab { font-variant-numeric: tabular-nums; font-size: 15px; }
+    .mini-cta-pill { font-size: 14px; font-weight: 600; color: #fff; background: linear-gradient(160deg, #D98EA0, #B85F74); border-radius: 14px; padding: 13px; text-align: center; box-shadow: 0 8px 18px rgba(184, 95, 116, 0.32); }
+
+    .mini-onb-progress { padding: 22px 22px 0; flex: none; display: flex; gap: 5px; }
+    .mini-onb-seg { flex: 1; height: 5px; border-radius: 999px; background: #EDE8EA; }
+    .mini-onb-seg.on { background: #D98EA0; }
+    .mini-onb-body { flex: 1; padding: 30px 22px 0; }
+    .mini-onb-title { font-family: 'Fraunces', serif; font-size: 23px; line-height: 1.18; margin-bottom: 8px; }
+    .mini-onb-sub { font-size: 13px; color: #8A8290; line-height: 1.45; margin-bottom: 22px; }
+    .mini-onb-chips { display: flex; flex-wrap: wrap; gap: 9px; }
+    .mini-onb-chip { display: flex; align-items: center; gap: 7px; border-radius: 999px; padding: 9px 14px; font-size: 13px; font-weight: 600; }
+    .mini-onb-chip.on { border: 1.5px solid #D98EA0; background: #FCF4F6; color: #B85F74; }
+    .mini-onb-chip.off { border: 1.5px solid #EDE8EA; background: #fff; color: #5A535F; }
+
+    /* ── PHILOSOPHY ──────────────────────────────────── */
+    section.philosophy { max-width: 860px; margin: 0 auto; padding: 100px 32px; text-align: center; }
+    blockquote.quote {
+      font-family: 'Fraunces', serif; font-weight: 300;
+      font-size: 38px; line-height: 1.28; letter-spacing: -0.01em;
+      color: #322E38;
+    }
+    blockquote.quote em { font-style: normal; color: #C16E82; }
+    .philosophy-mark { margin-top: 34px; display: flex; align-items: center; justify-content: center; gap: 11px; }
+    .philosophy-mark .brand-mark { width: 34px; height: 34px; }
+    .philosophy-mark .brand-name { font-size: 15px; }
+
+    /* ── FINAL CTA ───────────────────────────────────── */
+    section.final-cta { max-width: 1180px; margin: 0 auto; padding: 0 32px 100px; }
+    .cta-card {
+      background: linear-gradient(155deg, #E9AEBB, #B85F74);
+      border-radius: 36px; padding: 72px 56px; text-align: center;
+      color: #fff; position: relative; overflow: hidden;
+      box-shadow: 0 24px 60px rgba(184, 95, 116, 0.34);
+    }
+    .cta-orb-a { position: absolute; top: -80px; left: -60px; width: 280px; height: 280px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); }
+    .cta-orb-b { position: absolute; bottom: -100px; right: -50px; width: 300px; height: 300px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); }
+    .cta-card h2 {
+      position: relative;
+      font-family: 'Fraunces', serif; font-weight: 300;
+      font-size: 46px; line-height: 1.1; letter-spacing: -0.015em;
+      margin-bottom: 18px;
+    }
+    .cta-card p {
+      position: relative;
+      font-size: 18px; line-height: 1.55;
+      color: rgba(255, 255, 255, 0.92);
+      max-width: 460px; margin: 0 auto 38px;
+    }
+    .cta-card .row { position: relative; display: flex; align-items: center; justify-content: center; }
+    .download-btn.invert {
+      background: #fff; color: #B85F74 !important;
+      box-shadow: 0 14px 30px rgba(50, 40, 56, 0.2);
+    }
+
+    /* ── FOOTER ──────────────────────────────────────── */
+    footer { border-top: 1px solid #EFE8EA; }
+    .footer-row {
+      max-width: 1180px; margin: 0 auto;
+      padding: 44px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 20px;
+    }
+    .footer-links { display: flex; gap: 28px; flex-wrap: wrap; }
+    .footer-links a { font-size: 14px; color: #8A8290; transition: color .2s; }
+    .footer-links a:hover { color: #322E38; }
+    .footer-copy { font-size: 13px; color: #B6AFBA; }
+
+    /* ── RESPONSIVE ──────────────────────────────────── */
+    @media (max-width: 880px) {
+      .nav-row { padding: 14px 20px; }
+      .nav-links { gap: 18px; }
+      .nav-links a:not(.nav-cta) { display: none; }
+      .nav-cta { padding: 9px 18px; }
+      .hero-grid { grid-template-columns: 1fr; padding: 56px 20px 64px; gap: 40px; }
+      .hero-orb { width: 380px; height: 380px; top: -120px; right: -120px; }
+      h1.hero-title { font-size: 44px; }
+      .hero-lead { font-size: 17px; }
+      .download-btn { padding: 15px 26px; font-size: 16px; }
+      section.features { padding: 64px 20px; }
+      h2.section-title { font-size: 32px; }
+      .feature-grid { grid-template-columns: 1fr; gap: 16px; }
+      .feature-card { padding: 26px; }
+      .screens-inner { padding: 64px 20px; }
+      .screens-row { gap: 16px; align-items: center; }
+      .phone-mini { transform: scale(0.85); margin: -36px -10px; }
+      .phone-mini.raised { margin-top: -30px; }
+      section.philosophy { padding: 72px 24px; }
+      blockquote.quote { font-size: 28px; }
+      section.final-cta { padding: 0 20px 72px; }
+      .cta-card { padding: 56px 28px; }
+      .cta-card h2 { font-size: 34px; }
+      .cta-card p { font-size: 16px; }
+      .footer-row { padding: 32px 20px; flex-direction: column; align-items: flex-start; gap: 14px; }
+    }
+    @media (max-width: 460px) {
+      .hero { padding-top: 8px; }
+      .phone { width: 280px; height: 580px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ───── NAV ───── -->
+<nav>
+  <div class="nav-row">
+    <a href="#" class="brand">
+      <span class="brand-mark"><i data-lucide="footprints" style="width:19px;height:19px;color:#fff;"></i></span>
+      <span class="brand-name">From Couch to Fit</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#screens">The app</a>
+      <a href="#philosophy">Philosophy</a>
+      <a href="#get" class="nav-cta">Get the app</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ───── HERO ───── -->
+<section class="hero">
+  <div class="hero-orb" aria-hidden="true"></div>
+  <div class="hero-grid">
+    <div>
+      <div class="hero-pill">
+        <span class="hero-pill-dot"></span>
+        <span class="hero-pill-text">Movement tracking, without the pressure</span>
+      </div>
+      <h1 class="hero-title">Get fit at your own <em>soft</em> pace.</h1>
+      <p class="hero-lead">From Couch to Fit logs your walks, runs and Pilates flows — and celebrates every gentle step. No leaderboards, no guilt. Just you, moving kindly.</p>
+      <div id="get">
+        <a href="#" class="download-btn" data-apk-link>
+          <i data-lucide="download" style="width:21px;height:21px;stroke-width:2;"></i>
+          Download the app
+        </a>
+        <div class="download-note">
+          <i data-lucide="smartphone" style="width:16px;height:16px;color:#A39EAA;"></i>
+          Free · direct download for Android (.apk)
+        </div>
+      </div>
+    </div>
+
+    <!-- Hero phone -->
+    <div style="display:flex;justify-content:center;">
+      <div class="phone">
+        <div class="phone-row">
+          <span style="font-size:12px;font-weight:600;">9:41</span>
+          <div class="phone-row-icons">
+            <i data-lucide="wifi" style="width:14px;height:14px;"></i>
+            <i data-lucide="battery-full" style="width:15px;height:15px;"></i>
+          </div>
+        </div>
+        <div class="phone-body">
+          <div class="phone-greet">
+            <div>
+              <div class="phone-greet-date">Tuesday, 23 June</div>
+              <div class="phone-greet-name">Good morning,<br>Sofia 🌸</div>
+            </div>
+            <div class="phone-avatar">S</div>
+          </div>
+          <div class="phone-stats">
+            <div class="phone-stat-card">
+              <i data-lucide="route" style="width:17px;height:17px;color:#C16E82;"></i>
+              <div class="phone-stat-num">14.2</div>
+              <div class="phone-stat-label">km this week</div>
+            </div>
+            <div class="phone-stat-card">
+              <i data-lucide="activity" style="width:17px;height:17px;color:#9B8AA6;"></i>
+              <div class="phone-stat-num">5</div>
+              <div class="phone-stat-label">activities</div>
+            </div>
+          </div>
+          <div class="phone-exp-card">
+            <div class="phone-exp-cap">
+              <i data-lucide="flask-conical" style="width:15px;height:15px;"></i>
+              <span class="phone-exp-cap-text">ACTIVE EXPERIMENT</span>
+            </div>
+            <div class="phone-exp-title">Run 1 km a day · Day 3 of 5</div>
+            <div class="phone-exp-bar"><div class="phone-exp-fill"></div></div>
+          </div>
+          <div class="phone-cls-card">
+            <div class="phone-cls-icon"><i data-lucide="flower-2" style="width:22px;height:22px;color:#9B8AA6;"></i></div>
+            <div style="flex:1;">
+              <div class="phone-cls-title">Gentle Pilates flow</div>
+              <div class="phone-cls-sub">20 min · restorative</div>
+            </div>
+            <i data-lucide="play" style="width:16px;height:16px;color:#C16E82;stroke-width:2;"></i>
+          </div>
+        </div>
+        <div class="phone-nav">
+          <div class="phone-nav-bar">
+            <div class="phone-nav-tab on"><i data-lucide="house" style="width:18px;height:18px;color:#C16E82;"></i></div>
+            <div class="phone-nav-tab"><i data-lucide="route" style="width:18px;height:18px;color:#9A95A0;"></i></div>
+            <div class="phone-nav-tab"><i data-lucide="circle-plus" style="width:18px;height:18px;color:#9A95A0;"></i></div>
+            <div class="phone-nav-tab"><i data-lucide="flower-2" style="width:18px;height:18px;color:#9A95A0;"></i></div>
+            <div class="phone-nav-tab"><i data-lucide="user-round" style="width:18px;height:18px;color:#9A95A0;"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───── FEATURES ───── -->
+<section id="features" class="features">
+  <div class="section-head">
+    <div class="eyebrow">Why it feels different</div>
+    <h2 class="section-title">All the tracking, none of the noise</h2>
+  </div>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon blush"><i data-lucide="route" style="width:25px;height:25px;color:#C16E82;"></i></div>
+      <h3>Track every kind of movement</h3>
+      <p>Walks, runs, hikes, Pilates and more — logged with calm, clear maps and metrics that never overwhelm.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon plum"><i data-lucide="flask-conical" style="width:25px;height:25px;color:#9B8AA6;"></i></div>
+      <h3>Tiny experiments, not pressure</h3>
+      <p>Make a small, time-boxed promise — "run 1 km a day for five days" — then note how each session feels and wrap it up with what you learned.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon sage"><i data-lucide="sparkles" style="width:25px;height:25px;color:#8AA083;"></i></div>
+      <h3>Celebrations, not comparisons</h3>
+      <p>Finish to a warm, restful summary that honors your effort — no leaderboards, no one to beat.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ───── SCREENS SHOWCASE ───── -->
+<section id="screens" class="screens">
+  <div class="screens-inner">
+    <div class="section-head">
+      <div class="eyebrow">A look inside</div>
+      <h2 class="section-title">Soft to look at, simple to use</h2>
+    </div>
+    <div class="screens-row">
+      <!-- Tracker mini -->
+      <div class="phone-mini">
+        <div class="mini-map">
+          <svg viewBox="0 0 268 150" preserveAspectRatio="none">
+            <path d="M44 122 C 90 86, 84 60, 130 56 S 210 42, 232 22"
+                  fill="none" stroke="#D98EA0" stroke-width="4"
+                  stroke-linecap="round" stroke-dasharray="0.1 14"></path>
+          </svg>
+          <div class="dot dot-start"></div>
+          <div class="dot dot-end"></div>
+        </div>
+        <div class="mini-track-body">
+          <span class="mini-track-cap">Time</span>
+          <div class="mini-track-time">28:14</div>
+          <div class="mini-track-stats">
+            <div>
+              <div class="mini-track-stat-label">Dist</div>
+              <div class="mini-track-stat-num">3.8</div>
+            </div>
+            <div class="mini-track-divider"></div>
+            <div>
+              <div class="mini-track-stat-label">Pace</div>
+              <div class="mini-track-stat-num">7:24</div>
+            </div>
+          </div>
+        </div>
+        <div class="mini-track-controls">
+          <div class="mini-ctrl-side"><i data-lucide="square" style="width:18px;height:18px;color:#B85F74;fill:#B85F74;"></i></div>
+          <div class="mini-ctrl-main"><i data-lucide="pause" style="width:24px;height:24px;color:#fff;fill:#fff;"></i></div>
+        </div>
+      </div>
+
+      <!-- Summary mini (raised) -->
+      <div class="phone-mini raised">
+        <div style="flex:1;padding:18px 18px 0;display:flex;flex-direction:column;">
+          <div class="mini-celeb">
+            <div class="spark-a"><i data-lucide="sparkle" style="width:15px;height:15px;"></i></div>
+            <div class="spark-b"><i data-lucide="sparkle" style="width:12px;height:12px;"></i></div>
+            <div class="medal"><i data-lucide="flower-2" style="width:32px;height:32px;color:#C16E82;"></i></div>
+          </div>
+          <h3 class="mini-celeb-title">Beautifully done</h3>
+          <p class="mini-celeb-sub">A calm 20-minute Pilates flow.</p>
+          <div class="mini-stats-card">
+            <div class="mini-stats-row">
+              <div class="mini-stats-left"><i data-lucide="timer" style="width:16px;height:16px;color:#9B8AA6;"></i>Duration</div>
+              <span class="mini-stats-val tab">20:06</span>
+            </div>
+            <div class="mini-stats-row">
+              <div class="mini-stats-left"><i data-lucide="flower-2" style="width:16px;height:16px;color:#9B8AA6;"></i>Type</div>
+              <span class="mini-stats-val">Gentle Pilates</span>
+            </div>
+            <div class="mini-stats-row">
+              <div class="mini-stats-left"><i data-lucide="flame" style="width:16px;height:16px;color:#C16E82;"></i>Streak</div>
+              <span class="mini-stats-val">12 days</span>
+            </div>
+          </div>
+        </div>
+        <div style="padding:14px 18px 24px;">
+          <div class="mini-cta-pill">Save activity</div>
+        </div>
+      </div>
+
+      <!-- Onboarding mini -->
+      <div class="phone-mini">
+        <div class="mini-onb-progress">
+          <div class="mini-onb-seg on"></div>
+          <div class="mini-onb-seg on"></div>
+          <div class="mini-onb-seg"></div>
+        </div>
+        <div class="mini-onb-body">
+          <h3 class="mini-onb-title">What movement feels good?</h3>
+          <p class="mini-onb-sub">Pick as many as you like.</p>
+          <div class="mini-onb-chips">
+            <div class="mini-onb-chip on"><i data-lucide="footprints" style="width:16px;height:16px;color:#C16E82;"></i>Walking</div>
+            <div class="mini-onb-chip off"><i data-lucide="route" style="width:16px;height:16px;color:#9B8AA6;"></i>Running</div>
+            <div class="mini-onb-chip on"><i data-lucide="flower-2" style="width:16px;height:16px;color:#C16E82;"></i>Pilates</div>
+            <div class="mini-onb-chip off"><i data-lucide="heart" style="width:16px;height:16px;color:#9B8AA6;"></i>Yoga</div>
+            <div class="mini-onb-chip off"><i data-lucide="mountain" style="width:16px;height:16px;color:#9B8AA6;"></i>Hiking</div>
+          </div>
+        </div>
+        <div style="padding:0 20px 24px;">
+          <div class="mini-cta-pill">Continue</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───── PHILOSOPHY ───── -->
+<section id="philosophy" class="philosophy">
+  <div class="eyebrow">Our promise</div>
+  <blockquote class="quote">
+    Other apps shout. We simply open the door, gently, and say
+    <em>whenever you're ready.</em>
+  </blockquote>
+  <div class="philosophy-mark">
+    <span class="brand-mark"><i data-lucide="footprints" style="width:17px;height:17px;color:#fff;"></i></span>
+    <span class="brand-name">From Couch to Fit</span>
+  </div>
+</section>
+
+<!-- ───── FINAL CTA ───── -->
+<section class="final-cta">
+  <div class="cta-card">
+    <div class="cta-orb-a" aria-hidden="true"></div>
+    <div class="cta-orb-b" aria-hidden="true"></div>
+    <h2>Take the first soft step today</h2>
+    <p>Free to download. Free to move at your own pace. Your gentler relationship with movement starts now.</p>
+    <div class="row">
+      <a href="#" class="download-btn invert" data-apk-link>
+        <i data-lucide="download" style="width:21px;height:21px;stroke-width:2;"></i>
+        Download the app
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ───── FOOTER ───── -->
+<footer>
+  <div class="footer-row">
+    <div class="brand">
+      <span class="brand-mark" style="width:32px;height:32px;"><i data-lucide="footprints" style="width:17px;height:17px;color:#fff;"></i></span>
+      <span class="brand-name">From Couch to Fit</span>
+    </div>
+    <div class="footer-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Support</a>
+      <a href="mailto:hello@example.com">Contact</a>
+    </div>
+    <div class="footer-copy">© 2026 From Couch to Fit · Move gently 🌸</div>
+  </div>
+</footer>
+
+<script>
+  // ───────────────────────────────────────────────────────────────
+  //   APK download URL — EDIT THIS ONCE PER RELEASE
+  // ───────────────────────────────────────────────────────────────
+  //
+  // The simplest setup is to publish each APK as a GitHub Release asset
+  // named `from-couch-to-fit.apk`. The URL below will then always point
+  // at the latest one.
+  //
+  // 1.  After `eas build -p android --profile preview`, download the .apk.
+  // 2.  Rename it to `from-couch-to-fit.apk`.
+  // 3.  On GitHub: Releases → Draft a new release → tag e.g. v0.1.0 →
+  //     attach the .apk as a binary asset → Publish.
+  //
+  // No code change needed: `/releases/latest/download/<name>` always
+  // serves the most recent release's asset by filename.
+  //
+  // Replace `<USER>/<REPO>` once with your actual GitHub path:
+  const REPO = "YOUR-USER/YOUR-REPO";
+  const APK_FILENAME = "from-couch-to-fit.apk";
+  const APK_URL = `https://github.com/${REPO}/releases/latest/download/${APK_FILENAME}`;
+
+  // Wire every [data-apk-link] anchor to the URL above and force a
+  // download attribute so browsers save instead of trying to render.
+  document.querySelectorAll("[data-apk-link]").forEach((a) => {
+    a.href = APK_URL;
+    a.setAttribute("download", APK_FILENAME);
+    a.setAttribute("rel", "noopener");
+  });
+
+  // Render Lucide icons once the script loads.
+  window.addEventListener("load", () => {
+    try { window.lucide && window.lucide.createIcons(); } catch (e) {}
+  });
+</script>
+
+</body>
+</html>

@@ -37,6 +37,20 @@ Background GPS does **not** work in Expo Go, so the app ships as an installable 
 1. Put a **Google Maps Android API key** in `artifacts/mobile/app.json` at
    `android.config.googleMaps.apiKey` (without it the map is blank in the APK).
 2. Build: `npm i -g eas-cli` → `eas login` → `eas build -p android --profile preview`.
+3. Download the resulting `.apk`, rename to `from-couch-to-fit.apk`, then attach it
+   to a **GitHub Release** (tag e.g. `v0.1.0`). The landing page in `/docs/`
+   reads from `/releases/latest/download/from-couch-to-fit.apk`, so future builds
+   just need a new release — no site redeploy needed.
+
+## Landing page (GitHub Pages)
+
+The website lives in [`docs/index.html`](docs/index.html) and is served as
+GitHub Pages:
+
+- Settings → Pages → **Deploy from a branch**, branch `main`, folder `/docs`.
+- Edit the `REPO = "YOUR-USER/YOUR-REPO"` line in `docs/index.html` once after
+  the first push so the Download button resolves to your repo's releases.
+- See [`docs/README.md`](docs/README.md) for the full launch checklist.
 
 ## Auth setup (Supabase + Google)
 
