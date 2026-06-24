@@ -1,127 +1,138 @@
-import { BlurView } from "expo-blur";
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
-import { SymbolView } from "expo-symbols";
-import { Feather } from "@expo/vector-icons";
+import {
+  CirclePlus,
+  Flower2,
+  House,
+  Route as RouteIcon,
+  UserRound,
+} from "lucide-react-native";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { radii, shadow3 } from "@/constants/theme";
 import { useColors } from "@/hooks/useColors";
 
-function NativeTabLayout() {
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "house", selected: "house.fill" }} />
-        <Label>Home</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="log">
-        <Icon sf={{ default: "record.circle", selected: "record.circle.fill" }} />
-        <Label>Record</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="goals">
-        <Icon sf={{ default: "flag", selected: "flag.fill" }} />
-        <Label>Goals</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: "person", selected: "person.fill" }} />
-        <Label>Profile</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
-}
+type TabName = "index" | "activities" | "log" | "classes" | "profile";
 
-function ClassicTabLayout() {
+const ICONS: Record<TabName, React.ComponentType<{ size: number; color: string; strokeWidth: number }>> = {
+  index: House,
+  activities: RouteIcon,
+  log: CirclePlus,
+  classes: Flower2,
+  profile: UserRound,
+};
+
+const LABELS: Record<TabName, string> = {
+  index: "Home",
+  activities: "Activities",
+  log: "Track",
+  classes: "Classes",
+  profile: "You",
+};
+
+/**
+ * Custom floating tab bar from the brand mockup: pure-white pill, soft shadow,
+ * active = blush-tint background + deep-pink icon, otherwise muted plum.
+ */
+function FloatingTabBar({ state, navigation }: any) {
   const colors = useColors();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const isIOS = Platform.OS === "ios";
-  const isWeb = Platform.OS === "web";
+  const insets = useSafeAreaInsets();
+  const bottomPad = Platform.OS === "web" ? 18 : Math.max(insets.bottom, 12);
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
-        headerShown: false,
-        tabBarStyle: {
-          position: "absolute",
-          backgroundColor: isIOS ? "transparent" : colors.background,
-          borderTopWidth: isWeb ? 1 : 0,
-          borderTopColor: colors.border,
-          elevation: 0,
-          ...(isWeb ? { height: 84 } : {}),
-        },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView
-              intensity={100}
-              tint={isDark ? "dark" : "light"}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : isWeb ? (
-            <View
-              style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}
-            />
-          ) : null,
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="house" tintColor={color} size={24} />
-            ) : (
-              <Feather name="home" size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="log"
-        options={{
-          title: "Record",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="record.circle" tintColor={color} size={24} />
-            ) : (
-              <Feather name="disc" size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="goals"
-        options={{
-          title: "Goals",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="flag" tintColor={color} size={24} />
-            ) : (
-              <Feather name="flag" size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="person" tintColor={color} size={24} />
-            ) : (
-              <Feather name="user" size={22} color={color} />
-            ),
-        }}
-      />
-    </Tabs>
+    <View pointerEvents="box-none" style={[styles.shell, { paddingBottom: bottomPad }]}>
+      <View
+        style={[
+          styles.bar,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            ...shadow3,
+          },
+        ]}
+      >
+        {state.routes.map((route: any, index: number) => {
+          const focused = state.index === index;
+          const name = route.name as TabName;
+          const Icon = ICONS[name];
+          const label = LABELS[name];
+
+          return (
+            <Pressable
+              key={route.key}
+              onPress={() => {
+                const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+                if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
+              }}
+              style={[
+                styles.item,
+                focused && { backgroundColor: colors.blushTint },
+              ]}
+            >
+              <Icon
+                size={22}
+                color={focused ? colors.primaryDeep : "#9A95A0"}
+                strokeWidth={1.5}
+              />
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    color: focused ? colors.primaryDeep : "#9A95A0",
+                    fontFamily: focused ? "Inter_600SemiBold" : "Inter_500Medium",
+                  },
+                ]}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
 export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
-  return <ClassicTabLayout />;
+  return (
+    <Tabs
+      tabBar={(props) => <FloatingTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
+    >
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="activities" />
+      <Tabs.Screen name="log" />
+      <Tabs.Screen name="classes" />
+      <Tabs.Screen name="profile" />
+    </Tabs>
+  );
 }
+
+const styles = StyleSheet.create({
+  shell: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 18,
+  },
+  bar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  item: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 7,
+    borderRadius: 14,
+  },
+  label: { fontSize: 11 },
+});

@@ -1,4 +1,8 @@
 import {
+  Fraunces_300Light,
+  Fraunces_400Regular,
+} from "@expo-google-fonts/fraunces";
+import {
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
@@ -15,6 +19,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider, useApp } from "@/context/AppContext";
+import { restoreSession } from "@/lib/locationTracking";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -29,41 +34,57 @@ function AuthGate() {
     if (isLoading) return;
 
     const seg0 = segments[0] as string | undefined;
-    const inOnboarding = seg0 === "onboarding";
+    const inWelcome = seg0 === "welcome";
     const inAuth = seg0 === "auth";
+    const inOnboarding = seg0 === "onboarding";
+    const inAllSet = seg0 === "all-set";
     const inSummary = seg0 === "activity-summary";
 
+    // Activity summary is reachable while signed-in; don't bounce it.
     if (inSummary) return;
 
-    if (!hasSeenOnboarding) {
-      if (!inOnboarding) router.replace("/onboarding");
-      return;
-    }
-
     if (!isAuthenticated) {
-      if (!inAuth) router.replace("/auth");
+      // Signed-out → welcome → auth flow only.
+      if (!inWelcome && !inAuth) router.replace("/welcome");
       return;
     }
 
-    if (isAuthenticated && (inAuth || inOnboarding)) {
-      router.replace("/(tabs)/");
+    // Signed-in but hasn't finished onboarding → run them through it.
+    if (!hasSeenOnboarding) {
+      if (!inOnboarding && !inAllSet) router.replace("/onboarding");
+      return;
+    }
+
+    // Fully ready → kick out of pre-auth screens.
+    if (inWelcome || inAuth || inOnboarding) {
+      router.replace("/(tabs)");
     }
   }, [isAuthenticated, isLoading, hasSeenOnboarding, segments]);
-
-  if (isLoading) return null;
 
   return null;
 }
 
 function RootLayoutNav() {
+  // Recover an in-progress run if the app was killed mid-session.
+  useEffect(() => {
+    restoreSession();
+  }, []);
+
   return (
     <>
       <AuthGate />
       <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
+        <Stack.Screen name="welcome" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="auth" />
+        <Stack.Screen name="all-set" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="activity-summary" />
+        <Stack.Screen name="activity/[id]" />
+        <Stack.Screen name="experiments/index" />
+        <Stack.Screen name="experiments/new" />
+        <Stack.Screen name="experiments/reflection" />
+        <Stack.Screen name="experiments/wrapup" />
       </Stack>
     </>
   );
@@ -75,6 +96,8 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    Fraunces_300Light,
+    Fraunces_400Regular,
   });
 
   useEffect(() => {

@@ -14,9 +14,29 @@
       "backgroundColor": "#FDF5F7"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "UIBackgroundModes": ["location"],
+        "NSLocationWhenInUseUsageDescription": "From Couch to Fit uses your location to track your route and distance while you record a workout.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "From Couch to Fit keeps tracking your route while the app is in the background so your run keeps recording when the screen is off."
+      }
     },
-    "android": {},
+    "android": {
+      "package": "com.fromcouchtofit.app",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "REPLACE_WITH_YOUR_GOOGLE_MAPS_ANDROID_API_KEY"
+        }
+      }
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
@@ -28,7 +48,16 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "From Couch to Fit keeps tracking your route while the app is in the background so your run keeps recording when the screen is off.",
+          "locationWhenInUsePermission": "From Couch to Fit uses your location to track your route and distance while you record a workout.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

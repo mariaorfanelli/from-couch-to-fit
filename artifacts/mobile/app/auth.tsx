@@ -1,6 +1,6 @@
-import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { ChevronLeft, Eye, EyeOff, Lock, Mail, UserRound } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   Alert,
@@ -13,41 +13,96 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
 
+import GradientButton from "@/components/ui/GradientButton";
+import { font, radii, shadow1 } from "@/constants/theme";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 type Mode = "signin" | "signup";
 
+function GoogleGlyph({ size = 18 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 48 48">
+      <Path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z" />
+      <Path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z" />
+      <Path fill="#FBBC05" d="M11.69 28.18A13.95 13.95 0 0 1 10.96 24c0-1.46.25-2.87.69-4.18v-5.7H4.34A22 22 0 0 0 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z" />
+      <Path fill="#EA4335" d="M24 9.75c3.24 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 3.18 29.93 1 24 1 15.4 1 7.96 5.93 4.34 14.12l7.35 5.7C13.42 13.62 18.27 9.75 24 9.75z" />
+    </Svg>
+  );
+}
+
+function Field({
+  label,
+  icon,
+  value,
+  onChangeText,
+  placeholder,
+  secure,
+  onToggleSecure,
+  showSecure,
+  ...rest
+}: any) {
+  const colors = useColors();
+  const [focused, setFocused] = useState(false);
+  return (
+    <View style={{ marginBottom: 16 }}>
+      <Text style={[styles.label, { color: colors.secondaryText, fontFamily: font.medium }]}>{label}</Text>
+      <View
+        style={[
+          styles.fieldShell,
+          {
+            backgroundColor: colors.card,
+            borderColor: focused ? colors.inputFocus : colors.border,
+            borderWidth: focused ? 1.5 : 1,
+          },
+          focused && { shadowColor: "rgba(233,174,187,0.18)", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 4, elevation: 0 },
+        ]}
+      >
+        {icon}
+        <TextInput
+          {...rest}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#B6AFBA"
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          secureTextEntry={secure && !showSecure}
+          style={[styles.input, { color: colors.foreground, fontFamily: font.regular }]}
+        />
+        {onToggleSecure ? (
+          <Pressable onPress={onToggleSecure} hitSlop={10}>
+            {showSecure ? <EyeOff size={18} color="#A39EAA" strokeWidth={1.5} /> : <Eye size={18} color="#A39EAA" strokeWidth={1.5} />}
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
 export default function AuthScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { signIn, signUp } = useApp();
+  const { signIn, signUp, signInWithGoogle } = useApp();
+  const params = useLocalSearchParams<{ mode?: Mode }>();
 
-  const [mode, setMode] = useState<Mode>("signin");
-  const [name, setName] = useState("");
+  const [mode, setMode] = useState<Mode>(params.mode === "signup" ? "signup" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const topPadding = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
-
-  function switchMode(m: Mode) {
-    Haptics.selectionAsync();
-    setMode(m);
-    setName("");
-    setPassword("");
-  }
+  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   async function handleSubmit() {
     const trimEmail = email.trim().toLowerCase();
-    const trimPassword = password;
-
-    if (!trimEmail || !trimPassword) {
+    if (!trimEmail || !password) {
       Alert.alert("Missing info", "Please fill in all fields.");
       return;
     }
@@ -55,24 +110,17 @@ export default function AuthScreen() {
       Alert.alert("Invalid email", "Please enter a valid email address.");
       return;
     }
-    if (trimPassword.length < 6) {
+    if (password.length < 6) {
       Alert.alert("Weak password", "Password must be at least 6 characters.");
-      return;
-    }
-    if (mode === "signup" && !name.trim()) {
-      Alert.alert("Missing info", "Please enter your name.");
       return;
     }
 
     setLoading(true);
     try {
-      if (mode === "signup") {
-        await signUp(name.trim(), trimEmail, trimPassword);
-      } else {
-        await signIn(trimEmail, trimPassword);
-      }
+      if (mode === "signup") await signUp(trimEmail, password);
+      else await signIn(trimEmail, password);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace("/(tabs)/");
+      // Auth gate in _layout.tsx will route to onboarding or tabs.
     } catch (err: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert("Error", err?.message ?? "Something went wrong. Please try again.");
@@ -81,254 +129,128 @@ export default function AuthScreen() {
     }
   }
 
+  async function handleGoogle() {
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err: any) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Google sign-in", err?.message ?? "Could not finish Google sign-in.");
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
+
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[styles.container, { backgroundColor: colors.cardAlt }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          {
-            paddingTop: topPadding + 32,
-            paddingBottom: bottomPadding + 32,
-          },
-        ]}
+        contentContainerStyle={[styles.content, { paddingTop: topPad + 8, paddingBottom: bottomPad + 32 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View entering={FadeInDown.delay(0).duration(400)} style={styles.header}>
-          <View style={[styles.logoMark, { backgroundColor: colors.secondary }]}>
-            <Feather name="heart" size={28} color={colors.primary} />
-          </View>
-          <Text
-            style={[
-              styles.appName,
-              { color: colors.foreground, fontFamily: "Inter_700Bold" },
-            ]}
+        <Animated.View entering={FadeIn.duration(300)} style={styles.headerRow}>
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              if (router.canGoBack()) router.back();
+              else router.replace("/welcome");
+            }}
+            style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.border }, shadow1]}
+            hitSlop={10}
           >
-            From Couch to Fit
+            <ChevronLeft size={22} color="#5A535F" strokeWidth={1.5} />
+          </Pressable>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(60).duration(400)} style={styles.intro}>
+          <Text style={[styles.title, { color: colors.foreground, fontFamily: font.display }]}>
+            {mode === "signin" ? "Welcome back" : "Create your space"}
           </Text>
-          <Text
-            style={[
-              styles.tagline,
-              { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
-            ]}
-          >
-            {mode === "signin"
-              ? "Welcome back. Let's keep moving."
-              : "Every journey begins with a single step."}
+          <Text style={[styles.sub, { color: colors.mutedForeground, fontFamily: font.regular }]}>
+            {mode === "signin" ? "Pick up right where you left off." : "A gentle, pressure-free home for your movement."}
           </Text>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(80).duration(400)}>
-          <View style={[styles.modeToggle, { backgroundColor: colors.muted }]}>
-            <Pressable
-              style={[
-                styles.modeTab,
-                mode === "signin" && {
-                  backgroundColor: colors.card,
-                  shadowColor: colors.primary,
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.08,
-                  shadowRadius: 6,
-                  elevation: 2,
-                },
-              ]}
-              onPress={() => switchMode("signin")}
-            >
-              <Text
-                style={[
-                  styles.modeTabText,
-                  {
-                    color: mode === "signin" ? colors.primary : colors.mutedForeground,
-                    fontFamily: mode === "signin" ? "Inter_600SemiBold" : "Inter_400Regular",
-                  },
-                ]}
-              >
-                Sign In
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.modeTab,
-                mode === "signup" && {
-                  backgroundColor: colors.card,
-                  shadowColor: colors.primary,
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.08,
-                  shadowRadius: 6,
-                  elevation: 2,
-                },
-              ]}
-              onPress={() => switchMode("signup")}
-            >
-              <Text
-                style={[
-                  styles.modeTabText,
-                  {
-                    color: mode === "signup" ? colors.primary : colors.mutedForeground,
-                    fontFamily: mode === "signup" ? "Inter_600SemiBold" : "Inter_400Regular",
-                  },
-                ]}
-              >
-                Create Account
-              </Text>
-            </Pressable>
-          </View>
-        </Animated.View>
+        <Animated.View entering={FadeInDown.delay(120).duration(400)}>
+          <Field
+            label="Email"
+            icon={<Mail size={18} color="#A39EAA" strokeWidth={1.5} />}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@email.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="next"
+          />
+          <Field
+            label="Password"
+            icon={<Lock size={18} color={password ? "#D98EA0" : "#A39EAA"} strokeWidth={1.5} />}
+            value={password}
+            onChangeText={setPassword}
+            placeholder={mode === "signup" ? "At least 6 characters" : "Your password"}
+            secure
+            showSecure={showPass}
+            onToggleSecure={() => setShowPass((v) => !v)}
+            returnKeyType="done"
+            onSubmitEditing={handleSubmit}
+          />
 
-        <Animated.View entering={FadeInDown.delay(160).duration(400)} style={styles.form}>
-          {mode === "signup" && (
-            <View style={styles.field}>
-              <Text
-                style={[
-                  styles.fieldLabel,
-                  { color: colors.mutedForeground, fontFamily: "Inter_500Medium" },
-                ]}
-              >
-                Name
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    color: colors.foreground,
-                    fontFamily: "Inter_400Regular",
-                  },
-                ]}
-                value={name}
-                onChangeText={setName}
-                placeholder="Your name"
-                placeholderTextColor={colors.mutedForeground}
-                autoCapitalize="words"
-                returnKeyType="next"
-              />
-            </View>
+          {mode === "signin" && (
+            <Pressable style={{ alignSelf: "flex-end", marginTop: -8, marginBottom: 20 }}>
+              <Text style={{ fontSize: 13, color: colors.primaryDeep, fontFamily: font.semibold }}>Forgot password?</Text>
+            </Pressable>
           )}
 
-          <View style={styles.field}>
-            <Text
-              style={[
-                styles.fieldLabel,
-                { color: colors.mutedForeground, fontFamily: "Inter_500Medium" },
-              ]}
-            >
-              Email
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  color: colors.foreground,
-                  fontFamily: "Inter_400Regular",
-                },
-              ]}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@email.com"
-              placeholderTextColor={colors.mutedForeground}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="next"
-            />
-          </View>
+          <View style={{ height: mode === "signin" ? 0 : 14 }} />
 
-          <View style={styles.field}>
-            <Text
-              style={[
-                styles.fieldLabel,
-                { color: colors.mutedForeground, fontFamily: "Inter_500Medium" },
-              ]}
-            >
-              Password
+          <GradientButton
+            label={mode === "signin" ? "Log in" : "Create account"}
+            loading={loading}
+            onPress={handleSubmit}
+          />
+
+          {/* divider */}
+          <View style={styles.divider}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerLabel, { color: colors.mutedForeground, fontFamily: font.medium }]}>
+              or continue with
             </Text>
-            <View style={styles.passwordWrap}>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.passwordInput,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    color: colors.foreground,
-                    fontFamily: "Inter_400Regular",
-                  },
-                ]}
-                value={password}
-                onChangeText={setPassword}
-                placeholder={mode === "signup" ? "At least 6 characters" : "Password"}
-                placeholderTextColor={colors.mutedForeground}
-                secureTextEntry={!showPass}
-                returnKeyType="done"
-                onSubmitEditing={handleSubmit}
-              />
-              <Pressable
-                style={styles.eyeButton}
-                onPress={() => setShowPass((v) => !v)}
-              >
-                <Feather
-                  name={showPass ? "eye-off" : "eye"}
-                  size={18}
-                  color={colors.mutedForeground}
-                />
-              </Pressable>
-            </View>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
           </View>
 
           <Pressable
+            onPress={handleGoogle}
+            disabled={googleLoading}
             style={[
-              styles.submitButton,
-              {
-                backgroundColor: loading ? colors.secondary : colors.primary,
-              },
+              styles.googleBtn,
+              { backgroundColor: colors.card, borderColor: colors.border, opacity: googleLoading ? 0.6 : 1 },
+              shadow1,
             ]}
-            onPress={handleSubmit}
-            disabled={loading}
           >
-            <Text
-              style={[
-                styles.submitButtonText,
-                {
-                  fontFamily: "Inter_600SemiBold",
-                  color: loading ? colors.mutedForeground : "#FFFFFF",
-                },
-              ]}
-            >
-              {loading
-                ? "Please wait..."
-                : mode === "signin"
-                ? "Sign In"
-                : "Create Account"}
+            <GoogleGlyph size={19} />
+            <Text style={[styles.googleText, { color: colors.foreground, fontFamily: font.semibold }]}>
+              {googleLoading ? "Opening Google…" : "Continue with Google"}
             </Text>
           </Pressable>
         </Animated.View>
 
-        <Animated.View
-          entering={FadeInDown.delay(240).duration(400)}
-          style={styles.footer}
-        >
-          <Text
-            style={[
-              styles.footerText,
-              { color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
-            ]}
-          >
-            {mode === "signin" ? "New here?" : "Already have an account?"}
+        <Animated.View entering={FadeInDown.delay(220).duration(400)} style={styles.footer}>
+          <Text style={[styles.footerText, { color: colors.mutedForeground, fontFamily: font.regular }]}>
+            {mode === "signin" ? "New here? " : "Already have an account? "}
           </Text>
-          <Pressable onPress={() => switchMode(mode === "signin" ? "signup" : "signin")}>
-            <Text
-              style={[
-                styles.footerLink,
-                { color: colors.primary, fontFamily: "Inter_600SemiBold" },
-              ]}
-            >
-              {mode === "signin" ? " Create an account" : " Sign in"}
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              setMode(mode === "signin" ? "signup" : "signin");
+            }}
+          >
+            <Text style={[styles.footerLink, { color: colors.primaryDeep, fontFamily: font.semibold }]}>
+              {mode === "signin" ? "Create an account" : "Log in"}
             </Text>
           </Pressable>
         </Animated.View>
@@ -339,59 +261,47 @@ export default function AuthScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { paddingHorizontal: 24 },
-  header: { alignItems: "center", marginBottom: 36 },
-  logoMark: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
+  content: { paddingHorizontal: 28 },
+  headerRow: { marginBottom: 28 },
+  backBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 18,
   },
-  appName: { fontSize: 24, marginBottom: 8 },
-  tagline: { fontSize: 15, textAlign: "center", lineHeight: 22 },
-  modeToggle: {
+  intro: { marginBottom: 32 },
+  title: { fontSize: 32, letterSpacing: -0.5, marginBottom: 6 },
+  sub: { fontSize: 15, lineHeight: 22 },
+
+  label: { fontSize: 13, marginBottom: 8 },
+  fieldShell: {
     flexDirection: "row",
-    borderRadius: 14,
-    padding: 4,
-    marginBottom: 28,
-  },
-  modeTab: {
-    flex: 1,
-    paddingVertical: 11,
-    borderRadius: 11,
     alignItems: "center",
-  },
-  modeTabText: { fontSize: 14 },
-  form: { gap: 18, marginBottom: 24 },
-  field: { gap: 8 },
-  fieldLabel: { fontSize: 13, letterSpacing: 0.3 },
-  input: {
-    borderWidth: 1.5,
-    borderRadius: 14,
+    gap: 10,
+    borderRadius: radii.md,
     paddingHorizontal: 16,
-    paddingVertical: 15,
-    fontSize: 16,
+    paddingVertical: 14,
   },
-  passwordWrap: { position: "relative" },
-  passwordInput: { paddingRight: 50 },
-  eyeButton: {
-    position: "absolute",
-    right: 14,
-    top: 0,
-    bottom: 0,
-    justifyContent: "center",
-    padding: 4,
-  },
-  submitButton: {
-    paddingVertical: 17,
-    borderRadius: 16,
+  input: { flex: 1, fontSize: 15, padding: 0 },
+
+  divider: { flexDirection: "row", alignItems: "center", gap: 14, marginVertical: 22 },
+  dividerLine: { flex: 1, height: 1 },
+  dividerLabel: { fontSize: 12 },
+
+  googleBtn: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
+    justifyContent: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: radii.md,
+    paddingVertical: 14,
   },
-  submitButtonText: { fontSize: 16 },
-  footer: { flexDirection: "row", justifyContent: "center", flexWrap: "wrap" },
+  googleText: { fontSize: 15 },
+
+  footer: { flexDirection: "row", justifyContent: "center", marginTop: 28, flexWrap: "wrap" },
   footerText: { fontSize: 14 },
   footerLink: { fontSize: 14 },
 });

@@ -1,34 +1,52 @@
+/**
+ * From Couch to Fit — brand palette.
+ *
+ * Built on warm paper whites and dusty pinks; text never reaches pure black —
+ * we use a deep muted plum-charcoal that stays legible without harshness.
+ */
 const colors = {
   light: {
-    text: "#2D1A21",
-    tint: "#D4708A",
+    // text + surface base
+    text: "#322E38",
+    tint: "#D98EA0",
 
-    background: "#FDF5F7",
-    foreground: "#2D1A21",
+    background: "#F7F3F3", // warm canvas
+    foreground: "#322E38", // plum charcoal — primary text
+    secondaryText: "#6E6873", // supporting body copy
+    mutedForeground: "#A39EAA", // labels, hints
 
-    card: "#FFFFFF",
-    cardForeground: "#2D1A21",
+    card: "#FFFFFF", // pure white card
+    cardAlt: "#FBF9F9", // soft off-white surface
+    cardForeground: "#322E38",
+    blushTint: "#FCF4F6", // active tab / selected chip background
 
-    primary: "#D4708A",
+    // primary pink scale
+    primary: "#D98EA0", // primary 400 — main brand
     primaryForeground: "#FFFFFF",
+    primaryDeep: "#C16E82", // deep 500 — pressed / accent text
+    gradientStart: "#D98EA0",
+    gradientEnd: "#B85F74",
 
-    secondary: "#FCE8EE",
-    secondaryForeground: "#A04060",
+    secondary: "#F9E9ED", // blush 100 — soft chip bg
+    secondaryForeground: "#C16E82",
+    blush200: "#F2D3DB",
+    rose300: "#E9AEBB",
 
-    muted: "#F8F0F2",
-    mutedForeground: "#9B7F87",
-
-    accent: "#C24B6E",
+    muted: "#FBF9F9",
+    accent: "#C16E82",
     accentForeground: "#FFFFFF",
 
-    destructive: "#C05A5A",
-    destructiveForeground: "#FFFFFF",
-
-    border: "#F0D5DC",
-    input: "#FDF0F3",
-
-    success: "#7AA87A",
+    // semantic
+    success: "#A9B7A4", // calm sage
     successForeground: "#FFFFFF",
+    destructive: "#C16E82",
+    destructiveForeground: "#FFFFFF",
+    plum: "#9B8AA6", // soft plum — secondary accent
+
+    // borders + inputs
+    border: "#EDE8EA", // hairline divider
+    input: "#FBF9F9",
+    inputFocus: "#E0A0B0", // pink focus ring border
   },
 
   radius: 16,
