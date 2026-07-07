@@ -83,6 +83,7 @@ function RootLayoutNav() {
         <Stack.Screen name="activity/[id]" />
         <Stack.Screen name="experiments/index" />
         <Stack.Screen name="experiments/new" />
+        <Stack.Screen name="experiments/objective" />
         <Stack.Screen name="experiments/reflection" />
         <Stack.Screen name="experiments/wrapup" />
       </Stack>

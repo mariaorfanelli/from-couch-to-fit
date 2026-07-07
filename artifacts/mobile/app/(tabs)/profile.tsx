@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import { Check, ChevronRight, FlaskConical, LogOut, Pencil } from "lucide-react-native";
+import { Check, ChevronRight, FlaskConical, LogOut, Minus, Pencil, TrendingDown, TrendingUp } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   Alert,
@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { font, radii, shadow1 } from "@/constants/theme";
 import { useApp } from "@/context/AppContext";
+import { formatPaceSec, paceTrend, weekOverWeek } from "@/lib/stats";
 import { useColors } from "@/hooks/useColors";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -163,6 +164,8 @@ export default function ProfileScreen() {
         <StatRow label="This month" value={`${monthlyKm.toFixed(1)} km`} />
       </Animated.View>
 
+      {activities.length >= 2 && <ProgressCard />}
+
       {Object.keys(breakdown).length > 0 && (
         <Animated.View
           entering={FadeInDown.delay(180).duration(400)}
@@ -223,10 +226,68 @@ export default function ProfileScreen() {
   );
 }
 
+function ProgressCard() {
+  const colors = useColors();
+  const { activities } = useApp();
+  const km = weekOverWeek(activities, (b) => b.km);
+  const acts = weekOverWeek(activities, (b) => b.count);
+  const pace = paceTrend(activities, "run");
+
+  const rows: { label: string; dir: "up" | "down" | "flat"; text: string }[] = [
+    {
+      label: "Distance",
+      dir: km.diff > 0.05 ? "up" : km.diff < -0.05 ? "down" : "flat",
+      text:
+        km.diff > 0.05 ? `+${km.diff.toFixed(1)} km this week` :
+        km.diff < -0.05 ? `${km.diff.toFixed(1)} km this week` : "same as last week",
+    },
+    {
+      label: "Sessions",
+      dir: acts.diff > 0 ? "up" : acts.diff < 0 ? "down" : "flat",
+      text:
+        acts.diff > 0 ? `+${acts.diff} vs last week` :
+        acts.diff < 0 ? `${acts.diff} vs last week` : "same as last week",
+    },
+    {
+      label: "Running pace",
+      dir: pace.dir === "improving" ? "up" : pace.dir === "easing" ? "down" : "flat",
+      text:
+        pace.dir === "improving" ? `${Math.abs(Math.round(pace.deltaSec))} s/km faster · ${formatPaceSec(pace.recentSec)}` :
+        pace.dir === "easing" ? `${Math.abs(Math.round(pace.deltaSec))} s/km slower · ${formatPaceSec(pace.recentSec)}` :
+        pace.recentSec ? `steady · ${formatPaceSec(pace.recentSec)}` : "log a few runs",
+    },
+  ];
+
+  return (
+    <Animated.View
+      entering={FadeInDown.delay(150).duration(400)}
+      style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, ...shadow1 }]}
+    >
+      <Text style={[styles.cardTitle, { color: colors.foreground, fontFamily: font.semibold }]}>Are you improving?</Text>
+      {rows.map((r, i) => {
+        const color = r.dir === "up" ? "#8AA083" : r.dir === "down" ? "#C16E82" : "#9B8AA6";
+        const Icon = r.dir === "up" ? TrendingUp : r.dir === "down" ? TrendingDown : Minus;
+        return (
+          <View key={r.label} style={[styles.progRow, { borderBottomColor: colors.border, borderBottomWidth: i < rows.length - 1 ? 1 : 0 }]}>
+            <Text style={[styles.statLabel, { color: colors.secondaryText, fontFamily: font.regular }]}>{r.label}</Text>
+            <View style={styles.progRight}>
+              <Icon size={14} color={color} strokeWidth={2} />
+              <Text style={[styles.progText, { color, fontFamily: font.medium }]}>{r.text}</Text>
+            </View>
+          </View>
+        );
+      })}
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 22 },
   screenTitle: { fontSize: 32, letterSpacing: -0.4, marginBottom: 18 },
+  progRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1 },
+  progRight: { flexDirection: "row", alignItems: "center", gap: 6 },
+  progText: { fontSize: 13 },
 
   profileCard: {
     borderRadius: radii.lg,

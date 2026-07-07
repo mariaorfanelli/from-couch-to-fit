@@ -52,6 +52,31 @@ GitHub Pages:
   the first push so the Download button resolves to your repo's releases.
 - See [`docs/README.md`](docs/README.md) for the full launch checklist.
 
+## AI training plans (DeepSeek)
+
+Objectives ("run 6 km", "reach 7:10 pace") are turned into trackable plans by DeepSeek. The API key
+lives ONLY in a Supabase Edge Function so it never ships in the public APK.
+
+- Function: [`supabase/functions/deepseek-plan/index.ts`](supabase/functions/deepseek-plan/index.ts).
+  Client: `lib/aiPlan.ts` (`generatePlan`) which falls back to a solid **local** generator if the
+  function is missing/errors — so objectives always work, AI just makes them better.
+- **Deploy (one-time):**
+  ```
+  npm i -g supabase
+  supabase login
+  supabase link --project-ref jhjhxiviapjjowxcaqoa
+  supabase secrets set DEEPSEEK_API_KEY=sk-...
+  supabase functions deploy deepseek-plan
+  ```
+  Until deployed, the app silently uses the local "Smart plan" generator.
+
+## Interval workouts & notifications
+
+Run/walk interval sessions (`lib/intervals.ts`) run on top of GPS tracking. Phase transitions cue via
+haptics **and** pre-scheduled `expo-notifications` local notifications, so "run now" lands with the
+screen off. The `expo-notifications` plugin is configured in `app.json`; permission is requested on the
+first interval start.
+
 ## Auth setup (Supabase + Google)
 
 The app uses Supabase Auth. Until configured, both email/password and Google sign-in throw a clear

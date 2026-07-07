@@ -10,7 +10,10 @@ import {
   Footprints,
   Heart,
   Play,
+  Repeat,
   Route as RouteIcon,
+  Sparkles,
+  Target,
 } from "lucide-react-native";
 import React, { useMemo } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -20,7 +23,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EmptyActivitiesIllustration } from "@/components/Illustrations";
 import { font, radii, shadow1, shadow2 } from "@/constants/theme";
 import { Activity, useApp } from "@/context/AppContext";
-import { completedDaysCount, todayDayIndex } from "@/lib/experiments";
+import { completedDaysCount, isPlan, planTargetLabel, todayDayIndex, todayPlanDay } from "@/lib/experiments";
+import { summarize } from "@/lib/intervals";
 import { useColors } from "@/hooks/useColors";
 
 function getGreeting(): string {
@@ -87,6 +91,11 @@ export default function HomeScreen() {
   const expDone = activeExperiment ? completedDaysCount(activeExperiment) : 0;
   const expToday = activeExperiment ? todayDayIndex(activeExperiment) : null;
   const expProgress = activeExperiment ? expDone / activeExperiment.durationDays : 0;
+
+  const plan = activeExperiment && isPlan(activeExperiment) ? activeExperiment : null;
+  const todayRx = plan ? todayPlanDay(plan) : null;
+  const planDone = plan ? plan.sessions.filter((s) => s.activityId).length : 0;
+  const planTotal = plan?.days?.length ?? 0;
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const firstName = (user?.name ?? "Friend").split(" ")[0];
@@ -157,8 +166,55 @@ export default function HomeScreen() {
         </View>
       </Animated.View>
 
-      {/* Active experiment — gradient hero card */}
-      {activeExperiment ? (
+      {/* Active plan / experiment — gradient hero card */}
+      {plan ? (
+        <Animated.View entering={FadeInDown.delay(140).duration(400)}>
+          <Pressable onPress={() => router.push("/experiments")}>
+            <LinearGradient colors={["#E9AEBB", "#D0859A"]} style={[styles.goalCard, shadow2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <View style={styles.goalOrnament} pointerEvents="none" />
+              <View style={styles.goalTopRow}>
+                <Target size={18} color="#FFFFFF" strokeWidth={1.8} />
+                <Text style={[styles.goalCapt, { fontFamily: font.semibold }]}>
+                  PLAN · {planDone}/{planTotal} SESSIONS
+                </Text>
+              </View>
+              <Text style={[styles.goalTitle, { fontFamily: font.semibold }]}>{plan.title}</Text>
+              {todayRx ? (
+                <>
+                  <Text style={[styles.goalSub, { fontFamily: font.regular }]}>
+                    Today · {todayRx.label}
+                    {todayRx.interval ? ` · ${summarize(todayRx.interval)}` : todayRx.targetKm ? ` · ${todayRx.targetKm} km` : ""}
+                  </Text>
+                  <Pressable
+                    style={styles.startTodayPill}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(tabs)/log",
+                        params: {
+                          preset: todayRx.activityType,
+                          experimentId: plan.id,
+                          dayIndex: String(todayRx.dayIndex),
+                          mode: todayRx.interval ? "interval" : "gps",
+                          interval: todayRx.interval ? JSON.stringify(todayRx.interval) : undefined,
+                        },
+                      })
+                    }
+                  >
+                    {todayRx.interval ? (
+                      <Repeat size={14} color="#B85F74" strokeWidth={2.4} />
+                    ) : (
+                      <Play size={14} color="#B85F74" strokeWidth={2.4} fill="#B85F74" />
+                    )}
+                    <Text style={[styles.startTodayText, { fontFamily: font.semibold }]}>Start today's session</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <Text style={[styles.goalSub, { fontFamily: font.regular }]}>Rest day 🌿 — tap to see the week.</Text>
+              )}
+            </LinearGradient>
+          </Pressable>
+        </Animated.View>
+      ) : activeExperiment ? (
         <Animated.View entering={FadeInDown.delay(140).duration(400)}>
           <Pressable onPress={() => router.push("/experiments")}>
             <LinearGradient
@@ -203,17 +259,17 @@ export default function HomeScreen() {
         <Animated.View entering={FadeInDown.delay(140).duration(400)}>
           <Pressable
             style={[styles.setGoalCard, { backgroundColor: colors.card, borderColor: colors.border, ...shadow1 }]}
-            onPress={() => router.push("/experiments/new")}
+            onPress={() => router.push("/experiments/objective")}
           >
             <View style={[styles.setGoalIcon, { backgroundColor: colors.secondary }]}>
-              <FlaskConical size={20} color={colors.primaryDeep} strokeWidth={1.5} />
+              <Sparkles size={20} color={colors.primaryDeep} strokeWidth={1.5} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.setGoalTitle, { color: colors.foreground, fontFamily: font.semibold }]}>
-                Start a tiny experiment
+                Set an objective
               </Text>
               <Text style={[styles.setGoalSub, { color: colors.mutedForeground, fontFamily: font.regular }]}>
-                A small, time-boxed promise to yourself
+                Get an AI plan — or start a tiny experiment
               </Text>
             </View>
             <ChevronRight size={18} color={colors.mutedForeground} strokeWidth={1.5} />
@@ -376,6 +432,18 @@ const styles = StyleSheet.create({
   expProgress: { flexDirection: "row", gap: 6, marginVertical: 4 },
   expSeg: { flex: 1, height: 6, borderRadius: 999 },
   goalPct: { fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 8 },
+  startTodayPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 7,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    marginTop: 14,
+  },
+  startTodayText: { fontSize: 13, color: "#B85F74" },
 
   setGoalCard: {
     flexDirection: "row",

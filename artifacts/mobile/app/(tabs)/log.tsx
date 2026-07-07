@@ -11,6 +11,7 @@ import {
   MapPin,
   Pause,
   Play,
+  Repeat,
   Route as RouteIcon,
   Square,
   Wind,
@@ -30,11 +31,21 @@ import {
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import IntervalOverlay from "@/components/IntervalOverlay";
 import MapTracker from "@/components/MapTracker";
 import GradientButton from "@/components/ui/GradientButton";
 import { ctaShadow, font, radii, shadow1, shadow2 } from "@/constants/theme";
 import { ActivityType, useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import {
+  boundaries,
+  FlatPhase,
+  flatten,
+  INTERVAL_PRESETS,
+  IntervalPlan,
+  phaseAt,
+  summarize,
+} from "@/lib/intervals";
 import {
   finishTracking,
   getSnapshot,
@@ -43,6 +54,12 @@ import {
   startTracking,
   subscribe,
 } from "@/lib/locationTracking";
+import {
+  cancelIntervalCues,
+  notifyIntervalDone,
+  requestNotifyPermission,
+  scheduleIntervalCues,
+} from "@/lib/notify";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const MAP_HEIGHT = Math.round(SCREEN_HEIGHT * 0.32);
@@ -81,14 +98,35 @@ export default function RecordScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { addActivity } = useApp();
-  const params = useLocalSearchParams<{ preset?: ActivityType; experimentId?: string; dayIndex?: string }>();
+  const params = useLocalSearchParams<{
+    preset?: ActivityType;
+    experimentId?: string;
+    dayIndex?: string;
+    mode?: string;
+    interval?: string;
+  }>();
   const experimentId = params.experimentId;
   const dayIndex = params.dayIndex;
+
+  // A plan day or class may hand us a ready-made interval plan.
+  const presetInterval = React.useMemo<IntervalPlan | null>(() => {
+    if (!params.interval) return null;
+    try {
+      return JSON.parse(params.interval) as IntervalPlan;
+    } catch {
+      return null;
+    }
+  }, [params.interval]);
 
   const [selectedType, setSelectedType] = useState<ActivityType>(params.preset ?? "run");
   const [mode, setMode] = useState<"gps" | "manual">(
     params.preset && !GPS_TYPES.find((g) => g.type === params.preset) ? "manual" : "gps"
   );
+  const [activeInterval, setActiveInterval] = useState<IntervalPlan | null>(presetInterval);
+
+  const flatRef = useRef<FlatPhase[]>(presetInterval ? flatten(presetInterval) : []);
+  const prevPhaseRef = useRef<number>(-1);
+  const intervalDoneRef = useRef(false);
   const [permissionStatus, setPermissionStatus] = useState<"unknown" | "granted" | "denied">("unknown");
   const [currentRegion, setCurrentRegion] = useState<any>(null);
 
@@ -128,6 +166,33 @@ export default function RecordScreen() {
     if (trackingState !== "idle") mapRef.current?.animateToRegion(region, 500);
   }, [coords.length]);
 
+  // Keep the flattened interval timeline in sync with the selected plan.
+  useEffect(() => {
+    flatRef.current = activeInterval ? flatten(activeInterval) : [];
+    prevPhaseRef.current = -1;
+    intervalDoneRef.current = false;
+  }, [activeInterval]);
+
+  // Interval cues: strong buzz on each phase change + a completion nudge.
+  useEffect(() => {
+    if (!activeInterval || trackingState !== "tracking") return;
+    const at = phaseAt(flatRef.current, elapsedSeconds);
+    if (!at) return;
+    if (at.index !== prevPhaseRef.current) {
+      prevPhaseRef.current = at.index;
+      Haptics.notificationAsync(
+        at.phase.type === "run"
+          ? Haptics.NotificationFeedbackType.Warning
+          : Haptics.NotificationFeedbackType.Success
+      );
+    }
+    if (at.done && !intervalDoneRef.current) {
+      intervalDoneRef.current = true;
+      notifyIntervalDone();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, [elapsedSeconds, activeInterval, trackingState]);
+
   async function requestPermission() {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status === "granted") {
@@ -154,19 +219,34 @@ export default function RecordScreen() {
     }
     setPermissionStatus("granted");
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (activeInterval) {
+      prevPhaseRef.current = -1;
+      intervalDoneRef.current = false;
+      await requestNotifyPermission();
+      await scheduleIntervalCues(boundaries(flatRef.current));
+    }
   }
 
   function handlePause() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     pauseTracking();
+    if (activeInterval) cancelIntervalCues();
   }
 
   function handleResume() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     resumeTracking();
+    if (activeInterval) {
+      // Reschedule only the cues still ahead of us, rebased to "now".
+      const upcoming = boundaries(flatRef.current)
+        .filter((b) => b.atSec > elapsedSeconds)
+        .map((b) => ({ ...b, atSec: b.atSec - elapsedSeconds }));
+      scheduleIntervalCues(upcoming);
+    }
   }
 
   async function finishWorkout() {
+    if (activeInterval) cancelIntervalCues();
     const { coords: finalCoords, distanceKm: finalDistance, seconds: finalSeconds } = await finishTracking();
 
     if (finalSeconds < 5) {
@@ -184,6 +264,8 @@ export default function RecordScreen() {
       distanceKm: finalDistance > 0 ? parseFloat(finalDistance.toFixed(2)) : undefined,
       pace: finalPace !== "--" ? `${finalPace} /km` : undefined,
       coords: finalCoords.length > 1 ? finalCoords : undefined,
+      interval: activeInterval ?? undefined,
+      intervalLabel: activeInterval?.name,
     });
 
     if (experimentId && dayIndex != null) {
@@ -311,6 +393,52 @@ export default function RecordScreen() {
             })}
           </View>
 
+          {/* Interval picker (idle only) */}
+          {trackingState === "idle" && (
+            <View style={styles.intervalWrap}>
+              <View style={styles.intervalHead}>
+                <Repeat size={13} color={colors.mutedForeground} strokeWidth={1.5} />
+                <Text style={[styles.intervalHeadText, { color: colors.mutedForeground, fontFamily: font.medium }]}>
+                  INTERVALS · WALK / RUN
+                </Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.intervalChips}>
+                {[null, presetInterval, ...INTERVAL_PRESETS]
+                  .filter((p, i, arr) => (p ? arr.findIndex((x) => x?.name === p.name) === i : true))
+                  .map((p, i) => {
+                    const sel = (p?.name ?? null) === (activeInterval?.name ?? null);
+                    return (
+                      <Pressable
+                        key={p?.id ?? p?.name ?? `off-${i}`}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          setActiveInterval(p);
+                        }}
+                        style={[
+                          styles.intervalChip,
+                          { backgroundColor: sel ? colors.primary : colors.card, borderColor: sel ? colors.primary : colors.border },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.intervalChipText,
+                            { color: sel ? "#FFFFFF" : colors.foreground, fontFamily: sel ? font.semibold : font.regular },
+                          ]}
+                        >
+                          {p ? p.name : "Off"}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+              </ScrollView>
+              {activeInterval && (
+                <Text style={[styles.intervalSummary, { color: colors.mutedForeground, fontFamily: font.regular }]}>
+                  {summarize(activeInterval)}
+                </Text>
+              )}
+            </View>
+          )}
+
           {/* Map */}
           {showPermissionDenied ? (
             <View style={[styles.mapFallback, { backgroundColor: colors.secondary, height: MAP_HEIGHT }]}>
@@ -338,9 +466,12 @@ export default function RecordScreen() {
                 <Animated.View entering={FadeIn.duration(200)} style={[styles.statusPill, { backgroundColor: colors.card }, shadow1]}>
                   <View style={[styles.statusDot, { backgroundColor: colors.success }]} />
                   <Text style={[styles.statusText, { color: colors.secondaryText, fontFamily: font.semibold }]}>
-                    Recording · GPS strong
+                    {activeInterval ? "Interval workout" : "Recording · GPS strong"}
                   </Text>
                 </Animated.View>
+              )}
+              {activeInterval && trackingState !== "idle" && (
+                <IntervalOverlay flat={flatRef.current} elapsedSec={elapsedSeconds} />
               )}
             </View>
           )}
@@ -504,6 +635,14 @@ const styles = StyleSheet.create({
   typeRow: { flexDirection: "row", gap: 10, paddingHorizontal: 22, paddingBottom: 12 },
   typeChip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 24, borderWidth: 1 },
   typeChipText: { fontSize: 14 },
+
+  intervalWrap: { paddingBottom: 10 },
+  intervalHead: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 22, marginBottom: 8 },
+  intervalHeadText: { fontSize: 11, letterSpacing: 1 },
+  intervalChips: { gap: 8, paddingHorizontal: 22 },
+  intervalChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1 },
+  intervalChipText: { fontSize: 13 },
+  intervalSummary: { fontSize: 12, paddingHorizontal: 22, marginTop: 8 },
 
   mapFallback: { alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32, borderRadius: radii.lg, marginHorizontal: 22 },
   fallbackTitle: { fontSize: 16, textAlign: "center" },

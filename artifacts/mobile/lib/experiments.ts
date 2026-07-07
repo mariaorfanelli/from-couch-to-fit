@@ -1,12 +1,32 @@
 import type { Activity, ActivityType } from "@/context/AppContext";
+import type { IntervalPlan } from "@/lib/intervals";
 
 /**
  * Tiny experiments — small, time-boxed promises ("Run 1 km a day for 5 days").
  * No pass/fail, only noticing: after each session the user logs a mood + note,
  * and the wrap-up screen summarizes the whole arc.
+ *
+ * An AI "plan" reuses the same shape (kind: "plan") but adds an objective, a
+ * measurable target, and a per-day prescription schedule.
  */
 
 export type Mood = 0 | 1 | 2 | 3 | 4;
+
+export interface PlanTarget {
+  kind: "distance" | "pace";
+  /** km for distance; seconds-per-km for pace (e.g. 7:10 → 430). */
+  value: number;
+}
+
+export interface PlanDay {
+  dayIndex: number;
+  label: string; // e.g. "Week 1 · Easy run/walk"
+  prescription: string; // human coaching text
+  activityType: ActivityType;
+  targetKm?: number;
+  interval?: IntervalPlan; // when the day is a run/walk interval session
+  rest?: boolean; // a scheduled rest day
+}
 
 export const MOODS: { emoji: string; label: string }[] = [
   { emoji: "😣", label: "Tough" },
@@ -26,6 +46,8 @@ export interface ExperimentSession {
 
 export interface Experiment {
   id: string;
+  /** "experiment" (default, tiny promise) or "plan" (AI objective-driven schedule). */
+  kind?: "experiment" | "plan";
   title: string;
   hypothesis?: string;
   activityType: ActivityType;
@@ -35,6 +57,35 @@ export interface Experiment {
   status: "active" | "completed" | "archived";
   sessions: ExperimentSession[];
   createdAt: string;
+
+  // Plan-only fields
+  objective?: string;
+  target?: PlanTarget;
+  days?: PlanDay[];
+}
+
+export function isPlan(exp: Experiment): boolean {
+  return exp.kind === "plan";
+}
+
+/** Window has passed but the experiment/plan was never finished. */
+export function isExpired(exp: Experiment): boolean {
+  if (exp.status !== "active") return false;
+  const offset = daysBetween(exp.startDate, todayKey());
+  return offset >= exp.durationDays && !isExperimentComplete(exp);
+}
+
+/** Today's prescribed plan day, or null if today is outside the window / not a plan. */
+export function todayPlanDay(exp: Experiment): PlanDay | null {
+  if (!exp.days || exp.days.length === 0) return null;
+  const idx = todayDayIndex(exp);
+  if (idx == null) return null;
+  return exp.days.find((d) => d.dayIndex === idx) ?? null;
+}
+
+export function planTargetLabel(t: PlanTarget): string {
+  if (t.kind === "distance") return `Run ${t.value} km`;
+  return `Reach ${formatPace(t.value)} /km pace`;
 }
 
 export function dateKey(d: Date): string {

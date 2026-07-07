@@ -1,8 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 
-import type { Experiment, ExperimentSession, Mood } from "@/lib/experiments";
+import type { Experiment, ExperimentSession, Mood, PlanDay, PlanTarget } from "@/lib/experiments";
 import { todayKey } from "@/lib/experiments";
+import type { IntervalPlan } from "@/lib/intervals";
 import type { LatLng } from "@/lib/locationTracking";
 import {
   deriveProfile,
@@ -31,6 +32,9 @@ export interface Activity {
   notes?: string;
   /** Recorded GPS route, present for tracked runs/walks. */
   coords?: LatLng[];
+  /** Present when the session was a run/walk interval workout. */
+  interval?: IntervalPlan;
+  intervalLabel?: string;
 }
 
 export interface UserProfile {
@@ -51,6 +55,15 @@ export interface ExperimentSessionUpdate {
   activityId?: string;
   mood?: Mood;
   note?: string;
+}
+
+export interface CreatePlanInput {
+  title: string;
+  objective: string;
+  target: PlanTarget;
+  activityType: ActivityType;
+  durationDays: number;
+  days: PlanDay[];
 }
 
 interface AppContextValue {
@@ -76,9 +89,11 @@ interface AppContextValue {
   experiments: Experiment[];
   activeExperiment: Experiment | null;
   createExperiment: (input: CreateExperimentInput) => string;
+  createPlan: (input: CreatePlanInput) => string;
   recordExperimentSession: (expId: string, dayIndex: number, update: ExperimentSessionUpdate) => void;
   completeExperiment: (expId: string) => void;
   archiveExperiment: (expId: string) => void;
+  deleteExperiment: (expId: string) => void;
 
   weeklyKm: number;
   weeklyActivities: number;
@@ -301,6 +316,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!user) return id;
       const exp: Experiment = {
         id,
+        kind: "experiment",
         title: input.title.trim(),
         hypothesis: input.hypothesis?.trim() || undefined,
         activityType: input.activityType,
@@ -313,6 +329,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
       setExperiments((prev) => {
         // Auto-archive any prior active experiment — only one is "the" experiment at a time.
+        const next = prev.map((p) => (p.status === "active" ? { ...p, status: "archived" as const } : p));
+        next.unshift(exp);
+        saveExperiments(user.id, next).catch(() => {});
+        return next;
+      });
+      return id;
+    },
+    [user]
+  );
+
+  const createPlan = useCallback(
+    (input: CreatePlanInput): string => {
+      const id = generateId();
+      if (!user) return id;
+      const exp: Experiment = {
+        id,
+        kind: "plan",
+        title: input.title.trim(),
+        activityType: input.activityType,
+        durationDays: input.durationDays,
+        startDate: todayKey(),
+        status: "active",
+        sessions: [],
+        createdAt: new Date().toISOString(),
+        objective: input.objective,
+        target: input.target,
+        days: input.days,
+      };
+      setExperiments((prev) => {
         const next = prev.map((p) => (p.status === "active" ? { ...p, status: "archived" as const } : p));
         next.unshift(exp);
         saveExperiments(user.id, next).catch(() => {});
@@ -373,6 +418,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [user]
   );
 
+  const deleteExperiment = useCallback(
+    (expId: string) => {
+      if (!user) return;
+      setExperiments((prev) => {
+        const next = prev.filter((e) => e.id !== expId);
+        saveExperiments(user.id, next).catch(() => {});
+        return next;
+      });
+    },
+    [user]
+  );
+
   const activeExperiment = experiments.find((e) => e.status === "active") ?? null;
 
   // ─── derived ─────────────────────────────────────────────────────────────
@@ -402,9 +459,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         experiments,
         activeExperiment,
         createExperiment,
+        createPlan,
         recordExperimentSession,
         completeExperiment,
         archiveExperiment,
+        deleteExperiment,
         weeklyKm: weekActs.reduce((s, a) => s + (a.distanceKm ?? 0), 0),
         weeklyActivities: weekActs.length,
         weeklyMinutes: weekActs.reduce((s, a) => s + a.durationMinutes, 0),
