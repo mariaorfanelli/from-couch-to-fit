@@ -1,0 +1,9 @@
+# Files EAS Build does not need in the project tarball.
+# Excluding these also avoids Windows temp-cleanup EPERM on dirs held open by
+# editors / preview servers during a build.
+docs/
+supabase/
+attached_assets/
+.local/
+.agents/
+*.apk
